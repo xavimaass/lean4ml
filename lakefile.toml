@@ -16,3 +16,7 @@ name = "checkdecls"
 git = "https://github.com/PatrickMassot/checkdecls.git"
 [[lean_lib]]
 name = "lean4ml"
+
+[[lean_exe]]
+name = "MathlibLint"
+srcDir = "."
