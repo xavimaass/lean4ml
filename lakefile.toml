@@ -1,5 +1,6 @@
 name = "lean4ml"
 defaultTargets = ["lean4ml"]
+lintDriver = "batteries/runLinter"
 
 [leanOptions]
 pp.unicode.fun = true
@@ -16,7 +17,3 @@ name = "checkdecls"
 git = "https://github.com/PatrickMassot/checkdecls.git"
 [[lean_lib]]
 name = "lean4ml"
-
-[[lean_exe]]
-name = "MathlibLint"
-srcDir = "."
