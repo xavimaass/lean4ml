@@ -21,3 +21,108 @@
   \uses{thm:test_b} %, lem:open_ample_immersion
   This obviously follows from what we did so far.
 \end{proof}
+
+
+The following content is adapted from~\cite{Wright_Recht_2022}, but rewritten to match the Lean section \texttt{TaylorAndSmoothness} in \texttt{lean4ml/Optimization/LSmooth.lean}.
+
+\section*{TaylorAndSmoothness}
+
+Throughout this section, \(E\) is a real Hilbert space, \(f : E \to \mathbb{R}\), and \(s \subseteq E\).
+
+\begin{definition}
+  \label{def:l_smooth_on}
+  \lean{Lean4ML.Optimization.LSmoothOn}
+  \leanok
+  We say that \(f\) is \(L\)-smooth on \(s\) if
+  \[
+  \|\nabla f(x) - \nabla f(y)\| \le L\|x-y\|,\quad \forall x,y \in s.
+  \]
+  In Lean, this is encoded as \texttt{LipschitzOnWith L (fun x => gradient f x) s}.
+\end{definition}
+
+\begin{definition}
+  \label{def:quadratic_upper_bound}
+  \lean{Lean4ML.Optimization.QuadraticUpperBound}
+  \leanok
+  The quadratic upper model on \(s\) is
+  \[
+  f(y) \le f(x) + \langle \nabla f(x), y-x \rangle + \frac{L}{2}\|y-x\|^2,
+  \quad \forall x,y \in s.
+  \]
+\end{definition}
+
+\begin{theorem}[First-order Taylor formula along a line]
+  \label{thm:taylor_first_order}
+  \lean{Lean4ML.Optimization.taylor_first_order}
+  \leanok
+  \uses{def:quadratic_upper_bound}
+  If \(f\) is \(C^1\), then for all \(x,p \in E\),
+  \[
+  f(x+p) - f(x) = \int_0^1 \langle \nabla f(x + t p), p \rangle\,dt.
+  \]
+\end{theorem}
+
+\begin{lemma}[Pointwise bound on the line-segment integrand]
+  \label{lem:lipschitz_gradient_pointwise}
+  \lean{Lean4ML.Optimization.lipschitz_gradient_pointwise}
+  \leanok
+  \uses{def:l_smooth_on}
+  Assume \(f\) is \(L\)-smooth on \(s\), \(x \in s\), and \(x + \gamma (y-x) \in s\) with \(\gamma \ge 0\). Then
+  \[
+  \left\langle \nabla f\bigl(x+\gamma (y-x)\bigr) - \nabla f(x), y-x \right\rangle
+  \le L\gamma\|y-x\|^2.
+  \]
+\end{lemma}
+
+\begin{theorem}[Quadratic upper bound from smoothness on a convex set]
+  \label{thm:l_smooth_quadratic_upper_bound}
+  \lean{Lean4ML.Optimization.l_smooth_quadratic_upper_bound}
+  \leanok
+  \uses{thm:taylor_first_order,lem:lipschitz_gradient_pointwise,def:l_smooth_on,def:quadratic_upper_bound}
+  Assume \(f\) is \(C^1\), \(L\)-smooth on a convex set \(s\), and \(x,y \in s\). Then
+  \[
+  f(y) \le f(x) + \langle \nabla f(x), y-x \rangle + \frac{L}{2}\|y-x\|^2.
+  \]
+\end{theorem}
+
+In Lean, the proof follows exactly this decomposition: first prove the integral identity (\texttt{taylor\_first\_order}), then bound the integrand pointwise (\texttt{lipschitz\_gradient\_pointwise}), and finally integrate the bound on \([0,1]\).
+
+When \(f\) is twice continuously differentiable, we can characterize the constant \(L\) in terms of the eigenvalues of the Hessian \(\nabla^{2}f(x)\). Specifically, we have
+\[
+-LI \leq \nabla^{2}f(x) \leq LI,\quad \text{for all } x, \tag{2.10}
+\]
+as the following result proves.
+
+\begin{lemma}
+Suppose \(f\) is twice continuously differentiable on \(\mathbb{R}^{n}\). Then if \(f\) is \(L\)-smooth, we have \(\nabla^{2}f(x) \preceq LI\) for all \(x\). Conversely, if \(-LI \preceq \nabla^{2}f(x) \preceq LI\), then \(f\) is \(L\)-smooth.
+\end{lemma}
+
+\begin{proof}
+From (2.9), we have, by setting \(y = x + \alpha p\) for some \(\alpha > 0\), that
+\[
+f(x + \alpha p) - f(x) - \alpha \nabla f(x)^{T}p \leq \frac{L}{2}\alpha^{2}\|p\|^{2}.
+\]
+From formula (2.5) from Taylor's theorem, we have for some \(\gamma \in (0,1)\) that
+\[
+f(x + \alpha p) - f(x) - \alpha \nabla f(x)^{T}p = \frac{1}{2}\alpha^{2}p^{T}\nabla^{2}f(x + \gamma \alpha p)p.
+\]
+By comparing these two expressions, we obtain
+\[
+p^{T}\nabla^{2}f(x + \gamma \alpha p)p \leq L\|p\|^{2}.
+\]
+By letting \(\alpha \downarrow 0\), we have that all eigenvalues of \(\nabla^{2}f(x)\) are bounded by \(L\), so that \(\nabla^{2}f(x) \preceq LI\), as claimed.
+
+Suppose now that \(-LI \preceq \nabla^{2}f(x) \preceq LI\) for all \(x\), so that \(\|\nabla^{2}f(x)\| \leq L\) for all \(x\). We have, from (2.4), that
+\[
+\begin{aligned}
+\|\nabla f(y) - \nabla f(x)\| &= \left\|\int_{t=0}^{1} \nabla^{2}f(x + t(y - x))(y - x) \, dt\right\| \\
+&\leq \int_{t=0}^{1} \|\nabla^{2}f(x + t(y - x))\| \|y - x\| \, dt \\
+&\leq \int_{t=0}^{1} L \|y - x\| \, dt = L\|y - x\|,
+\end{aligned}
+\]
+as required. This completes the proof.
+\end{proof}
+
+
+\bibliographystyle{alpha}
+\bibliography{references}
