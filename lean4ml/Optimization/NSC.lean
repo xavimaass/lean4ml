@@ -92,91 +92,175 @@ theorem local_min_hessian_psd
     (hC2 : ContDiff ℝ 2 f)
     (hmin : IsLocalMin f x) (p : E) :
     0 ≤ ⟪hessian f x p, p⟫ := by
-  -- Gradient vanishes at a local minimum
   have hgrad : gradient f x = 0 :=
-    local_min_gradient_zero (hC1 := hC2.of_le (by norm_num)) (hmin := hmin)
+    local_min_gradient_zero f x (hC2.of_le (by norm_num)) hmin
+  by_contra hneg
+  have hneg' : ⟪hessian f x p, p⟫ < 0 := by
+    exact lt_of_not_ge hneg
 
-  -- The map α ↦ x + α • p tends to x as α → 0+ (within the right-hand neighbourhood)
-  have hcont_add : Continuous fun α => x + α • p := by continuity
-  have htend : Tendsto (fun α => x + α • p) (𝓝[>] 0) (𝓝 x) :=
-    (hcont_add.continuousAt).tendsto.mono_left nhdsWithin_le_nhds
+  let g : ℝ → ℝ := fun α => f (x + α • p) - f x
+  let hxpp : ℝ := ⟪hessian f x p, p⟫
+  let Hline : ℝ → ℝ := fun u => ⟪hessian f (x + u • p) p, p⟫
 
-  -- For α ≠ 0, the second-order Taylor expansion applied to α • p gives
-  -- (f (x + αp) - f x) = α^2 * ∫_{0..1} ∫_{0..t} ⟪hessian f (x + (s*α)•p) p, p⟫ ds dt.
-  have h_taylor_scaled :
-    ∀ α : ℝ, (f (x + α • p) - f x) = α ^ 2 * ∫ t in (0 : ℝ)..1, ∫ s in (0 : ℝ)..t, ⟪hessian f (x + (s * α) • p) p, p⟫ :=
-    by
-    intro (α : ℝ)
-    have hts := taylor_second_order_exact (hC2 := hC2) x (α • p) hgrad
-    -- simplify the double-inner by pulling scalars out of the inner product
-    have :
-      (fun t => ∫ s in (0 : ℝ)..t, ⟪hessian f (x + s • (α • p)) (α • p), α • p⟫)
-        = fun t => α ^ 2 * ∫ s in (0 : ℝ)..t, ⟪hessian f (x + (s * α) • p) p, p⟫ :=
-      by
-      funext t
-      congr
-      funext s
-      simp only [smul_smul]
-      have h1 : hessian f (x + s * α • p) (α • p) = α • hessian f (x + (s * α) • p) p := by
-        simp only [smul_smul]
-      simp [h1]
-    calc
-      f (x + α • p) - f x = ∫ t in (0 : ℝ)..1, ∫ s in (0 : ℝ)..t,
-          ⟪hessian f (x + s • (α • p)) (α • p), α • p⟫ := hts
-      _ = ∫ t in (0 : ℝ)..1, α ^ 2 * ∫ s in (0 : ℝ)..t, ⟪hessian f (x + (s * α) • p) p, p⟫ := by
-        congr
-        exact this
-      _ = α ^ 2 * ∫ t in (0 : ℝ)..1, ∫ s in (0 : ℝ)..t, ⟪hessian f (x + (s * α) • p) p, p⟫ :=
-        by simp [Integral.integral_const_mul]
+  have hcont_vec : Continuous (fun u : ℝ => hessian f (x + u • p) p) := by
+    exact (continuous_fderiv_line_apply (f := fun y : E => gradient f y)
+      (by simpa [gradient] using
+        ((InnerProductSpace.toDual ℝ E).symm.contDiff.comp
+          (hC2.fderiv_right (m := 1) (by norm_num)))) x p)
+  have hcontH : Continuous Hline := by
+    simpa [Hline] using hcont_vec.inner continuous_const
+  have hcenter_lt : Hline 0 < hxpp / 2 := by
+    dsimp [Hline, hxpp]
+    simpa using (show ⟪hessian f x p, p⟫ < ⟪hessian f x p, p⟫ / 2 by linarith [hneg'])
+  have hnear_set : {u : ℝ | Hline u < hxpp / 2} ∈ 𝓝 (0 : ℝ) :=
+    hcontH.continuousAt.eventually (Iio_mem_nhds hcenter_lt)
+  rcases Metric.mem_nhds_iff.mp hnear_set with ⟨δ, hδpos, hδmem⟩
 
-  -- Define the integrand function and its continuity at 0
-  let H := fun y => ⟪hessian f y p, p⟫
-  have H_cont : ContinuousAt H x := by
-    have : Continuous fun y => hessian f y p :=
-      by
-      have h := (hC2.fderiv_right (m := 1) (by norm_num))
-      exact (continuous_fderiv_line_apply (f := fun y => gradient f y) h x p)
-    exact (this.continuousAt.inner continuous_const).trans (by simp)
+  have h_eventually_ge : ∀ᶠ α in 𝓝[>] 0, 0 ≤ g α := by
+    have htend0 : Filter.Tendsto (fun α : ℝ => x + α • p) (𝓝[>] (0 : ℝ)) (𝓝 (x + (0 : ℝ) • p)) :=
+      (continuous_const.add (continuous_id.smul continuous_const)).continuousAt.tendsto.mono_left
+        nhdsWithin_le_nhds
+    have htend : Filter.Tendsto (fun α : ℝ => x + α • p) (𝓝[>] (0 : ℝ)) (𝓝 x) := by
+      simpa using htend0
+    exact htend.eventually hmin |>.mono fun α h => sub_nonneg.mpr h
 
-  -- From local minimality we get eventual nonnegativity of f(x+αp)-f x on the right neighbourhood
-  have h_eventually_ge : ∀ᶠ α in 𝓝[>] 0, f x ≤ f (x + α • p) :=
-    htend.eventually hmin
+  have h_small : ∀ᶠ α in 𝓝[>] (0 : ℝ), |α| < δ := by
+    have hball : Metric.ball (0 : ℝ) δ ∈ 𝓝 (0 : ℝ) := Metric.ball_mem_nhds (0 : ℝ) hδpos
+    have hball' : {α : ℝ | |α| < δ} ∈ 𝓝 (0 : ℝ) := by
+      simpa [Metric.ball, Real.dist_eq, abs_sub_comm, sub_eq_add_neg] using hball
+    exact nhdsWithin_le_nhds hball'
 
-  -- For α in the right neighbourhood we can divide by α^2 (>0) to get nonnegativity of the quotient
-  have h_eventual_nonneg : ∀ᶠ α in 𝓝[>] 0, 0 ≤ (f (x + α • p) - f x) / α ^ 2 :=
-    h_eventually_ge.mono fun α h =>
-      have : 0 ≤ (f (x + α • p) - f x) := sub_nonneg.2 h
-      div_nonneg this (pow_nonneg (le_of_lt (lt_of_mem_nhdsWithin zero_lt_one (by simp))))
+  have h_eventually_lt : ∀ᶠ α in 𝓝[>] (0 : ℝ), g α < 0 := by
+    refine (h_small.and self_mem_nhdsWithin).mono ?_
+    intro α hα
+    have hαsmall : |α| < δ := hα.1
+    have hαpos : 0 < α := hα.2
+    have hαsq_pos : 0 < α ^ (2 : ℕ) := sq_pos_of_pos hαpos
 
-  -- The scaled Taylor identity gives equality of the quotient with the parametric double integral
-  have eq_eventually : ∀ᶠ α in 𝓝[>] 0,
-    (f (x + α • p) - f x) / α ^ 2 = ∫ t in (0 : ℝ)..1, ∫ s in (0 : ℝ)..t, H (x + (s * α) • p) :=
-    eventually_of_forall fun α : ℝ => by simp [h_taylor_scaled α]
+    have hinner_bound :
+        ∀ t ∈ Icc (0 : ℝ) 1,
+          (∫ s in (0 : ℝ)..t, ⟪hessian f (x + s • (α • p)) (α • p), α • p⟫)
+            ≤ α ^ (2 : ℕ) * (hxpp / 2) * t := by
+      intro t ht
+      have h_int_mono :
+          (∫ s in (0 : ℝ)..t, ⟪hessian f (x + s • (α • p)) (α • p), α • p⟫)
+            ≤ ∫ s in (0 : ℝ)..t, α ^ (2 : ℕ) * (hxpp / 2) := by
+        refine intervalIntegral.integral_mono_on (a := (0 : ℝ)) (b := t)
+          (f := fun s => ⟪hessian f (x + s • (α • p)) (α • p), α • p⟫)
+          (g := fun _s => α ^ (2 : ℕ) * (hxpp / 2)) ht.1 ?_ ?_ ?_
+        · have hcont : Continuous (fun s : ℝ => ⟪hessian f (x + s • (α • p)) (α • p), α • p⟫) := by
+            have hvec : Continuous (fun s : ℝ => hessian f (x + s • (α • p)) (α • p)) := by
+              exact (continuous_fderiv_line_apply (f := fun y : E => gradient f y)
+                (by simpa [gradient] using
+                  ((InnerProductSpace.toDual ℝ E).symm.contDiff.comp
+                    (hC2.fderiv_right (m := 1) (by norm_num)))) x (α • p))
+            simpa using hvec.inner continuous_const
+          exact hcont.continuousOn.intervalIntegrable
+        · exact intervalIntegrable_const
+        · intro s hs
+          have hs01 : s ∈ Icc (0 : ℝ) 1 := ⟨hs.1, hs.2.trans ht.2⟩
+          have hs_nonneg : 0 ≤ s := hs01.1
+          have hs_le_one : s ≤ 1 := hs01.2
+          have hsabs : |s| ≤ 1 := by
+            simpa [abs_of_nonneg hs_nonneg] using hs_le_one
+          have hmul_abs : |s * α| < δ := by
+            calc
+              |s * α| = |s| * |α| := by rw [abs_mul]
+              _ ≤ 1 * |α| := by gcongr
+              _ = |α| := by ring
+              _ < δ := hαsmall
+          have hs_ball : s * α ∈ Metric.ball (0 : ℝ) δ := by
+            simpa [Metric.mem_ball, Real.dist_eq, abs_sub_comm, sub_eq_add_neg] using hmul_abs
+          have hHlt : Hline (s * α) < hxpp / 2 := hδmem hs_ball
+          have hHle : Hline (s * α) ≤ hxpp / 2 := le_of_lt hHlt
+          have hαsq_nonneg : 0 ≤ α ^ (2 : ℕ) := sq_nonneg α
+          have hrewrite :
+              ⟪hessian f (x + s • (α • p)) (α • p), α • p⟫
+                = α ^ (2 : ℕ) * Hline (s * α) := by
+            dsimp [Hline]
+            have : x + s • (α • p) = x + (s * α) • p := by
+              simp [smul_smul, mul_comm, mul_left_comm, mul_assoc]
+            rw [this]
+            calc
+              ⟪hessian f (x + (s * α) • p) (α • p), α • p⟫
+                  = ⟪α • hessian f (x + (s * α) • p) p, α • p⟫ := by simp
+              _ = α * (α * ⟪hessian f (x + (s * α) • p) p, p⟫) := by
+                    simp [real_inner_smul_left, real_inner_smul_right, mul_assoc]
+              _ = α ^ (2 : ℕ) * ⟪hessian f (x + (s * α) • p) p, p⟫ := by ring
+          have hpoint :
+              ⟪hessian f (x + s • (α • p)) (α • p), α • p⟫ ≤ α ^ (2 : ℕ) * (hxpp / 2) := by
+            calc
+              ⟪hessian f (x + s • (α • p)) (α • p), α • p⟫ = α ^ (2 : ℕ) * Hline (s * α) :=
+                hrewrite
+              _ ≤ α ^ (2 : ℕ) * (hxpp / 2) := by gcongr
+          exact hpoint
+      calc
+        (∫ s in (0 : ℝ)..t, ⟪hessian f (x + s • (α • p)) (α • p), α • p⟫)
+            ≤ ∫ s in (0 : ℝ)..t, α ^ (2 : ℕ) * (hxpp / 2) := h_int_mono
+        _ = α ^ (2 : ℕ) * (hxpp / 2) * t := by
+            simpa [mul_comm, mul_left_comm, mul_assoc] using
+              (intervalIntegral.integral_const (a := (0 : ℝ)) (b := t)
+                (c := α ^ (2 : ℕ) * (hxpp / 2)))
 
-  -- Show the parametric double integral tends to (H x) / 2 as α → 0+
-  have tendsto_I :
-    Tendsto (fun α => ∫ t in (0 : ℝ)..1, ∫ s in (0 : ℝ)..t, H (x + (s * α) • p)) (𝓝[>] 0)
-      (𝓝 (∫ t in (0 : ℝ)..1, ∫ s in (0 : ℝ)..t, H x)) :=
-    by
-    -- continuity of H at x implies pointwise convergence; then standard results let us pass the limit
-    have Hc : ContinuousAt H x := H_cont
-    have pointwise : ∀ s : ℝ, Tendsto (fun α => H (x + (s * α) • p)) (𝓝[>] 0) (𝓝 (H x)) := by
-      intro (s : ℝ)
-      have comp_cont : Continuous fun α => x + (s * α) • p := by continuity
-      exact (comp_cont.continuousAt).tendsto.mono_left nhdsWithin_le_nhds
-    -- pass limit inside the integrals using continuity (dominated convergence style for continuous integrands)
-    refine (tendsto_integral_of_continuous_of_compact_interval (fun α t => H (x + (t * α) • p))).2 ?_
+    have htaylor :
+        g α
+          = ∫ t in (0 : ℝ)..1,
+              ∫ s in (0 : ℝ)..t, ⟪hessian f (x + s • (α • p)) (α • p), α • p⟫ := by
+      dsimp [g]
+      simpa using taylor_second_order_exact f hC2 x (α • p) hgrad
 
-  -- Final step: use eventual nonnegativity and the limit of the quotient to conclude the limit ≥ 0
-  have final_tendsto : Tendsto (fun α => (f (x + α • p) - f x) / α ^ 2) (𝓝[>] 0)
-    (𝓝 (∫ t in (0 : ℝ)..1, ∫ s in (0 : ℝ)..t, H x)) :=
-    eq_eventually.mono_right tendsto_I
+    have houter_bound :
+        g α ≤ ∫ t in (0 : ℝ)..1, (α ^ (2 : ℕ) * (hxpp / 2) * t) := by
+      rw [htaylor]
+      let φ : ℝ → ℝ := fun s => ⟪hessian f (x + s • (α • p)) (α • p), α • p⟫
+      have hcontφ : Continuous φ := by
+        dsimp [φ]
+        have hvec : Continuous (fun s : ℝ => hessian f (x + s • (α • p)) (α • p)) := by
+          exact (continuous_fderiv_line_apply (f := fun y : E => gradient f y)
+            (by simpa [gradient] using
+              ((InnerProductSpace.toDual ℝ E).symm.contDiff.comp
+                (hC2.fderiv_right (m := 1) (by norm_num)))) x (α • p))
+        simpa using hvec.inner continuous_const
+      have hcont_f : Continuous (fun t : ℝ => ∫ s in (0 : ℝ)..t, φ s) := by
+        have h_int_all : ∀ a b : ℝ, IntervalIntegrable φ MeasureTheory.volume a b := by
+          intro a b
+          exact hcontφ.continuousOn.intervalIntegrable
+        exact intervalIntegral.continuous_primitive h_int_all (0 : ℝ)
+      refine intervalIntegral.integral_mono_on (a := (0 : ℝ)) (b := (1 : ℝ))
+        (f := fun t => ∫ s in (0 : ℝ)..t, φ s)
+        (g := fun t => α ^ (2 : ℕ) * (hxpp / 2) * t) (by norm_num) ?_ ?_ ?_
+      · exact hcont_f.continuousOn.intervalIntegrable
+      · exact (continuous_const.mul continuous_id).continuousOn.intervalIntegrable
+      · intro t ht
+        exact hinner_bound t ht
 
-  have I0 : ∫ t in (0 : ℝ)..1, ∫ s in (0 : ℝ)..t, H x = (H x) / 2 := by simp [integral_const_mul]
+    have h_eval_outer :
+        ∫ t in (0 : ℝ)..1, (α ^ (2 : ℕ) * (hxpp / 2) * t)
+          = α ^ (2 : ℕ) * (hxpp / 4) := by
+      calc
+        ∫ t in (0 : ℝ)..1, (α ^ (2 : ℕ) * (hxpp / 2) * t)
+            = α ^ (2 : ℕ) * (hxpp / 2) * ∫ t in (0 : ℝ)..1, t := by
+                simpa [mul_comm, mul_left_comm, mul_assoc] using
+                  (intervalIntegral.integral_const_mul (a := (0 : ℝ)) (b := (1 : ℝ))
+                    (r := α ^ (2 : ℕ) * (hxpp / 2)) (f := fun t : ℝ => t))
+        _ = α ^ (2 : ℕ) * (hxpp / 2) * (1 / 2 : ℝ) := by simp
+        _ = α ^ (2 : ℕ) * (hxpp / 4) := by ring
 
-  have lim_nonneg := NonnegLimit.of_eventually_nonneg_of_tendsto h_eventual_nonneg final_tendsto
-  simpa [I0] using lim_nonneg
+    have hstrict : α ^ (2 : ℕ) * (hxpp / 4) < 0 := by
+      have hqx : hxpp / 4 < 0 := by
+        dsimp [hxpp]
+        linarith
+      exact mul_neg_of_pos_of_neg hαsq_pos hqx
 
+    exact lt_of_le_of_lt (houter_bound.trans_eq h_eval_outer) hstrict
+
+  have hfalse : ∀ᶠ α in 𝓝[>] (0 : ℝ), False := by
+    refine (h_eventually_ge.and h_eventually_lt).mono ?_
+    intro α hα
+    exact (not_lt_of_ge hα.1) hα.2
+  have hbot : (𝓝[>] (0 : ℝ)) = ⊥ := (Filter.eventually_false_iff_eq_bot.mp hfalse)
+  have hne : (𝓝[>] (0 : ℝ)).NeBot := by infer_instance
+  exact hne.ne hbot
 end NecessaryConditions
 
 end Optimization
