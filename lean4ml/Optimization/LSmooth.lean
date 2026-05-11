@@ -25,6 +25,28 @@ def QuadraticUpperBound (f : E → ℝ) (L : NNReal) (s : Set E) : Prop :=
 def hessian (f : E → ℝ) (x : E) : E →L[ℝ] E :=
   fderiv ℝ (fun y => gradient f y) x
 
+/-- Derivative operator norm bound extracted from a Lipschitz-on-set hypothesis. -/
+lemma opNorm_fderiv_le_of_lipschitz
+    {g : E → E} {L : NNReal} {s : Set E} {x : E}
+    (hL : LipschitzOnWith L g s)
+    (hf : HasFDerivAt g (fderiv ℝ g x) x)
+    (hs : s ∈ nhds x) :
+    ‖fderiv ℝ g x‖ ≤ (L : ℝ) := by
+  let _ := (inferInstance : CompleteSpace E)
+  simpa using hf.le_of_lipschitzOn (x₀ := x) (s := s) hs hL
+
+/-- Inner-product control by operator norm and squared vector norm. -/
+lemma inner_le_opNorm_mul_norm_sq
+    (A : E →L[ℝ] E) (p : E) :
+    ⟪A p, p⟫ ≤ ‖A‖ * ‖p‖ ^ (2 : ℕ) := by
+  let _ := (inferInstance : CompleteSpace E)
+  calc
+    ⟪A p, p⟫ ≤ ‖A p‖ * ‖p‖ := real_inner_le_norm _ _
+    _ ≤ (‖A‖ * ‖p‖) * ‖p‖ := by
+          gcongr
+          exact ContinuousLinearMap.le_opNorm A p
+    _ = ‖A‖ * ‖p‖ ^ (2 : ℕ) := by ring
+
 section TaylorAndSmoothness
 
 variable (f : E → ℝ) (L : NNReal) (s : Set E)
@@ -59,7 +81,8 @@ lemma norm_gradient_sub_le
 
 /-- Continuity of `t ↦ (Df (x + t p)) p` along a line. -/
 lemma continuous_fderiv_line_apply
-    (hC1 : ContDiff ℝ 1 f) (x p : E) :
+    {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
+    {f : E → F} (hC1 : ContDiff ℝ 1 f) (x p : E) :
     Continuous (fun t : ℝ => (fderiv ℝ f (x + t • p)) p) := by
   let _ := (inferInstance : CompleteSpace E)
   have hpair_cont : Continuous (fun t : ℝ => (x + t • p, p)) :=
@@ -100,8 +123,9 @@ lemma hasDerivAt_line_add_smul (x p : E) (t : ℝ) :
 
 /-- Chain rule for composing a map with the line `τ ↦ x + τ • p`. -/
 lemma hasDerivAt_comp_line
-    (x p : E) (t : ℝ)
-    (hf : HasFDerivAt f (fderiv ℝ f (x + t • p)) (x + t • p)) :
+  {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
+  {f : E → F} (x p : E) (t : ℝ)
+  (hf : HasFDerivAt f (fderiv ℝ f (x + t • p)) (x + t • p)) :
     HasDerivAt (fun τ : ℝ => f (x + τ • p))
       ((fderiv ℝ f (x + t • p)) p) t := by
   let _ := (inferInstance : CompleteSpace E)
@@ -151,39 +175,56 @@ lemma Convex.add_smul_sub_mem_unit
   let _ := (inferInstance : CompleteSpace E)
   exact hConv.add_smul_sub_mem hx hy ht
 
-theorem taylor_first_order
-  (hC1 : ContDiff ℝ 1 f)
-  (x p : E) :
-  f (x + p) - f x =
-    ∫ t in (0 : ℝ)..1, ⟪gradient f (x + t • p), p⟫ := by
-  have hf := hasGradientAt_of_contDiff_one (f := f) hC1
-
-  -- define the curve
-  let g : ℝ → ℝ := fun t => f (x + t • p)
-
+/-- A vector-valued first-order Taylor formula along a line segment. -/
+theorem taylor_first_order_vector
+    {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
+    (f : E → F) (hC1 : ContDiff ℝ 1 f) (x p : E) :
+    f (x + p) - f x = ∫ t in (0 : ℝ)..1, (fderiv ℝ f (x + t • p)) p := by
+  let g : ℝ → F := fun t => f (x + t • p)
   have hg_deriv :
       ∀ t, HasDerivAt g ((fderiv ℝ f (x + t • p)) p) t := by
     intro t
-    -- chain rule along `t ↦ x + t • p`
     have hf' : HasFDerivAt f (fderiv ℝ f (x + t • p)) (x + t • p) :=
       (hC1.contDiffAt.differentiableAt one_ne_zero).hasFDerivAt
     simpa [g] using hasDerivAt_comp_line (f := f) (x := x) (p := p) (t := t) hf'
-
-  -- apply FTC
   have hg_deriv_uIcc :
       ∀ t ∈ uIcc (0 : ℝ) 1, HasDerivAt g ((fderiv ℝ f (x + t • p)) p) t := by
     intro t _
     exact hg_deriv t
   have h_int :
-      IntervalIntegrable (fun t : ℝ => (fderiv ℝ f (x + t • p)) p) MeasureTheory.volume (0 : ℝ) 1 :=
+      IntervalIntegrable (fun t : ℝ => (fderiv ℝ f (x + t • p)) p)
+        MeasureTheory.volume (0 : ℝ) 1 :=
     (continuous_fderiv_line_apply (f := f) hC1 x p).continuousOn.intervalIntegrable
   have hFTC := intervalIntegral.integral_eq_sub_of_hasDerivAt hg_deriv_uIcc h_int
+  simpa [g] using hFTC.symm
+
+/-- Scalar-valued first-order Taylor formula, as a corollary of the vector-valued version. -/
+theorem taylor_first_order
+  (hC1 : ContDiff ℝ 1 f)
+  (x p : E) :
+  f (x + p) - f x =
+    ∫ t in (0 : ℝ)..1, ⟪gradient f (x + t • p), p⟫ := by
+  have hvec := taylor_first_order_vector (E := E) (F := ℝ) f hC1 x p
   have h_integrand_eq :
-      (fun t : ℝ => (fderiv ℝ f (x + t • p)) p) =
-        fun t : ℝ => ⟪gradient f (x + t • p), p⟫ := by
-    funext t
-    simpa using (hf (x + t • p)).fderiv_apply (y := p)
-  simpa [g, h_integrand_eq] using hFTC.symm
+      (∫ t in (0 : ℝ)..1, (fderiv ℝ f (x + t • p)) p)
+        = ∫ t in (0 : ℝ)..1, ⟪gradient f (x + t • p), p⟫ := by
+    congr with t
+    have hf := hasGradientAt_of_contDiff_one (f := f) hC1 (x + t • p)
+    simpa using hf.fderiv_apply (y := p)
+  simpa [h_integrand_eq] using hvec
+
+/-- First-order expansion of the gradient, i.e. second-order Taylor along a line. -/
+theorem taylor_second_order_gradient
+  (hC2 : ContDiff ℝ 2 f)
+  (x p : E) :
+  gradient f (x + p) - gradient f x =
+    ∫ t in (0 : ℝ)..1, hessian f (x + t • p) p := by
+  have hgradC1 : ContDiff ℝ 1 (fun y : E => gradient f y) := by
+    simpa [gradient] using
+      ((InnerProductSpace.toDual ℝ E).symm.contDiff.comp
+        (hC2.fderiv_right (m := 1) (by norm_num)))
+  simpa [hessian] using
+    taylor_first_order_vector (E := E) (F := E) (fun y : E => gradient f y) hgradC1 x p
 
 
 theorem lipschitz_gradient_pointwise
@@ -213,6 +254,17 @@ theorem lipschitz_gradient_pointwise
           real_inner_le_norm _ _
     _ ≤ ((L : ℝ) * γ * ‖y - x‖) * ‖y - x‖ := by gcongr
     _ = (L : ℝ) * γ * ‖y - x‖ ^ 2 := by ring
+
+/-- Non-parametric gradient-inner bound implied by `L`-smoothness on `s`. -/
+lemma inner_grad_diff_le_L
+    (hL : LSmoothOn f L s)
+    (hx : x ∈ s) (hy : y ∈ s) :
+    ⟪gradient f y - gradient f x, y - x⟫
+      ≤ (L : ℝ) * ‖y - x‖ ^ (2 : ℕ) := by
+  have : x + (1 : ℝ) • (y - x) = y := by simp
+  simpa using
+    lipschitz_gradient_pointwise (f := f) (L := L) (s := s)
+      (x := x) (y := y) (γ := 1) hL hx (by simpa using hy) (by norm_num : 0 ≤ (1 : ℝ))
 
 theorem l_smooth_quadratic_upper_bound
   (hC1 : ContDiff ℝ 1 f)
@@ -307,6 +359,47 @@ Proof notes for implementation:
 * `LSmoothOnUnivImpliesHessianQuadraticFormBoundStatement` follows via the quadratic model,
   second-order expansion, and a limit argument.
 -/
+
+/-- If the Hessian operator norm is globally bounded by `L`, then `f` is globally `L`-smooth. -/
+theorem hessianBoundImpliesLSmoothOnUniv
+    (hHasFDeriv : ∀ x, HasFDerivAt (fun y => gradient f y) (hessian f x) x)
+    (hBound : ∀ x, ‖hessian f x‖ ≤ (L : ℝ)) :
+    LSmoothOn f L Set.univ := by
+  have hDiff : ∀ x, DifferentiableAt ℝ (fun y => gradient f y) x :=
+    fun x => (hHasFDeriv x).differentiableAt
+  have hBound' : ∀ x, ‖fderiv ℝ (fun y => gradient f y) x‖₊ ≤ L := by
+    intro x
+    rw [← NNReal.coe_le_coe]
+    simpa [hessian] using hBound x
+  exact lipschitzOnWith_univ.2 <|
+    lipschitzWith_of_nnnorm_fderiv_le hDiff hBound'
+
+/-- Global `L`-smoothness implies the Hessian quadratic-form upper bound everywhere. -/
+theorem lSmoothOnUnivImpliesHessianQuadraticFormBound
+    (hL : LSmoothOn f L Set.univ)
+    (hHasFDeriv : ∀ x, HasFDerivAt (fun y => gradient f y) (hessian f x) x) :
+    ∀ x p, ⟪hessian f x p, p⟫ ≤ (L : ℝ) * ‖p‖ ^ (2 : ℕ) := by
+  intro x p
+  have hOpNorm : ‖hessian f x‖ ≤ (L : ℝ) := by
+    simpa [hessian] using
+      opNorm_fderiv_le_of_lipschitz
+        (hL := hL)
+        (hf := hHasFDeriv x)
+        (hs := Filter.univ_mem)
+  calc
+    ⟪hessian f x p, p⟫ ≤ ‖hessian f x‖ * ‖p‖ ^ (2 : ℕ) :=
+      inner_le_opNorm_mul_norm_sq (A := hessian f x) p
+    _ ≤ (L : ℝ) * ‖p‖ ^ (2 : ℕ) := by gcongr
+
+theorem hessianBoundImpliesLSmoothOnUnivStatement_true :
+    HessianBoundImpliesLSmoothOnUnivStatement (f := f) (L := L) := by
+  intro hHasFDeriv hBound
+  exact hessianBoundImpliesLSmoothOnUniv (f := f) (L := L) hHasFDeriv hBound
+
+theorem lSmoothOnUnivImpliesHessianQuadraticFormBoundStatement_true :
+    LSmoothOnUnivImpliesHessianQuadraticFormBoundStatement (f := f) (L := L) := by
+  intro hL hHasFDeriv x p
+  exact lSmoothOnUnivImpliesHessianQuadraticFormBound (f := f) (L := L) hL hHasFDeriv x p
 
 end HessianVsSmoothness
 
