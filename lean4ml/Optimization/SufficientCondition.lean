@@ -1,6 +1,6 @@
 import Mathlib
 import Lean4ML.Optimization.LSmooth
-import Lean4ML.Optimization.NSC
+import Lean4ML.Optimization.NecessaryCondition
 
 noncomputable section
 
@@ -31,8 +31,8 @@ already, rather than “pointwise positive definite”.
 So:
 * `taylor_lower_bound_from_hessian_lb` is fully proved.
 * The final theorem `strict_local_min_of_gradient_zero_hessian_uniform_lb` is fully proved.
-* The “PD ⇒ uniform LB” lemma is left as `sorry`, with comments explaining what
-  exact additional structure/hypotheses would make it provable.
+* The “PD ⇒ uniform LB” lemma (`hessian_pd_local_lower_bound`) is now fully proved
+  in finite dimensions, via compactness of the unit sphere.
 -/
 
 /-- Strict local minimizer: there exists a neighborhood `U` of `x` such that
@@ -140,13 +140,71 @@ So we keep the development modular:
 * if later you specialize to `E := EuclideanSpace ℝ (Fin n)` you can prove this
   lemma and then obtain the classical statement.
 -/
-lemma hessian_pd_local_lower_bound
+
+/-
+In finite dimensions, a positive-definite continuous linear map has a
+uniform coercivity constant: `∃ ε > 0, ∀ p, ε * ‖p‖² ≤ ⟪H p, p⟫`.
+-/
+omit [CompleteSpace E] in
+lemma inner_coercive_of_pd [FiniteDimensional ℝ E]
+    (H : E →L[ℝ] E) (hPD : ∀ p : E, p ≠ 0 → 0 < ⟪H p, p⟫) :
+    ∃ ε > (0 : ℝ), ∀ p : E, ε * ‖p‖ ^ 2 ≤ ⟪H p, p⟫ := by
+  by_cases h_subsingleton : Subsingleton E;
+  · exact ⟨ 1, zero_lt_one, fun p => by simp +decide [ Subsingleton.elim p 0 ] ⟩;
+  · -- By the extreme value theorem, there exists a minimum value $m$ of $⟪H p, p⟫$ on the unit sphere.
+    obtain ⟨m, hm⟩ : ∃ m ∈ (Set.image (fun p : E => ⟪H p, p⟫) (Metric.sphere 0 1)), ∀ y ∈ (Set.image (fun p : E => ⟪H p, p⟫) (Metric.sphere 0 1)), m ≤ y := by
+      apply_rules [ IsCompact.exists_isLeast, isCompact_sphere ];
+      · exact IsCompact.image ( isCompact_sphere _ _ ) ( Continuous.inner ( H.continuous ) continuous_id' );
+      · obtain ⟨ p, hp ⟩ := not_subsingleton_iff_nontrivial.mp h_subsingleton;
+        exact ⟨ _, ⟨ ‖p - hp.choose‖⁻¹ • ( p - hp.choose ), by simp +decide [ norm_smul, sub_ne_zero.2 hp.choose_spec ], rfl ⟩ ⟩;
+    refine' ⟨ m, _, _ ⟩;
+    · aesop;
+    · intro p; by_cases hp : p = 0 <;> simp_all +decide ;
+      have := hm.2 ( ‖p‖⁻¹ • p ) ?_ <;> simp_all +decide [ norm_smul, inner_smul_left, inner_smul_right ];
+      rw [ inv_mul_eq_div, inv_mul_eq_div, div_div, le_div_iff₀ ] at this <;> first | positivity | nlinarith;
+
+/-
+The map `y ↦ hessian f y` is continuous when `f` is `C²`.
+-/
+lemma continuous_hessian (hC2 : ContDiff ℝ 2 f) :
+    Continuous (fun y => hessian f y) := by
+  -- The gradient is C¹, hence its derivative (the Hessian) is continuous.
+  have hGradC1 : ContDiff ℝ 1 (fun y => gradient f y) := by
+    exact ContDiff.comp ( LinearIsometryEquiv.contDiff _ ) ( hC2.fderiv_right ( by norm_num ) );
+  convert hGradC1.continuous_fderiv ( by norm_num ) using 1
+
+lemma hessian_pd_local_lower_bound [FiniteDimensional ℝ E]
     (hC2 : ContDiff ℝ 2 f)
     (x : E)
     (hPD : ∀ p : E, p ≠ 0 → 0 < ⟪hessian f x p, p⟫) :
     ∃ ε > (0 : ℝ), ∃ ρ > (0 : ℝ), ∀ y ∈ ball x ρ, ∀ p : E,
       ε * ‖p‖ ^ 2 ≤ ⟪hessian f y p, p⟫ := by
-  sorry
+  obtain ⟨ε₀, hε₀_pos, hε₀⟩ := inner_coercive_of_pd (hessian f x) hPD
+  have hcont_diff : Continuous (fun y => hessian f y - hessian f x) :=
+    (continuous_hessian f hC2).sub continuous_const
+  have hcont_norm : Continuous (fun y => ‖hessian f y - hessian f x‖) :=
+    continuous_norm.comp hcont_diff
+  have h0 : ‖hessian f x - hessian f x‖ = 0 := by simp
+  have hlt : ε₀ / 2 > 0 := half_pos hε₀_pos
+  have hmem : {y | ‖hessian f y - hessian f x‖ < ε₀ / 2} ∈ 𝓝 x :=
+    hcont_diff.norm.continuousAt.preimage_mem_nhds (by rw [h0]; exact Iio_mem_nhds hlt)
+  obtain ⟨ρ, hρ_pos, hρ⟩ := Metric.mem_nhds_iff.mp hmem
+  refine ⟨ε₀ / 2, hlt, ρ, hρ_pos, fun y hy p => ?_⟩
+  have hynorm : ‖hessian f y - hessian f x‖ < ε₀ / 2 := by
+    have := hρ hy
+    simpa [Metric.mem_ball, Real.dist_eq] using this
+  have hpert : |⟪(hessian f y - hessian f x) p, p⟫| ≤ ‖hessian f y - hessian f x‖ * ‖p‖ ^ 2 := by
+    calc |⟪(hessian f y - hessian f x) p, p⟫|
+        ≤ ‖(hessian f y - hessian f x) p‖ * ‖p‖ := abs_real_inner_le_norm _ _
+      _ ≤ (‖hessian f y - hessian f x‖ * ‖p‖) * ‖p‖ := by
+            gcongr; exact ContinuousLinearMap.le_opNorm _ _
+      _ = ‖hessian f y - hessian f x‖ * ‖p‖ ^ 2 := by ring
+  have hlow : -(ε₀ / 2) * ‖p‖ ^ 2 ≤ ⟪(hessian f y - hessian f x) p, p⟫ := by
+    have := (abs_le.mp hpert).1
+    nlinarith [sq_nonneg ‖p‖]
+  have hsplit : ⟪hessian f y p, p⟫ = ⟪hessian f x p, p⟫ + ⟪(hessian f y - hessian f x) p, p⟫ := by
+    simp [ContinuousLinearMap.sub_apply, inner_sub_left]
+  linarith [hε₀ p]
 
 -- ---------------------------------------------------------------------------
 -- Theorem 2.5 (usable form): strict local min from uniform Hessian LB

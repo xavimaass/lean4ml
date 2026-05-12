@@ -99,7 +99,7 @@ lemma continuous_fderiv_line_apply
     Continuous (fun t : ℝ => (fderiv ℝ f (x + t • p)) p) := by
   let _ := (inferInstance : CompleteSpace E)
   have hpair_cont : Continuous (fun t : ℝ => (x + t • p, p)) :=
-    ((continuous_id.smul continuous_const).const_add x).prodMk continuous_const
+    ((continuous_const).add (continuous_id.smul continuous_const)).prodMk continuous_const
   simpa [Function.comp] using (hC1.continuous_fderiv_apply one_ne_zero).comp hpair_cont
 
 /-- Continuity of `t ↦ ⟪∇f(x + t p), p⟫` along a line. -/
