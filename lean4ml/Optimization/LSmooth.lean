@@ -16,6 +16,19 @@ variable [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
 def LSmoothOn (f : E → ℝ) (L : NNReal) (s : Set E) : Prop :=
   LipschitzOnWith L (fun x => gradient f x) s
 
+/-- A function `f : E → ℝ` is **L-smooth** (globally) if its gradient is `L`-Lipschitz. -/
+def LSmoothfn (f : E → ℝ) (L : NNReal) : Prop :=
+  LipschitzWith L (fun x => gradient f x)
+
+lemma lSmooth_iff_lSmoothOn_univ {f : E → ℝ} {L : NNReal} :
+    LSmoothfn f L ↔ LSmoothOn f L Set.univ := by
+  simp [LSmoothfn, LSmoothOn, lipschitzOnWith_univ]
+
+lemma LSmoothOn_mono {f : E → ℝ} {L : NNReal} {S T : Set E}
+    (hf : LSmoothOn f L S) (hST : T ⊆ S) : LSmoothOn f L T :=
+  LipschitzOnWith.mono hf hST
+
+
 /-- Quadratic upper bound model used in descent lemmas. -/
 def QuadraticUpperBound (f : E → ℝ) (L : NNReal) (s : Set E) : Prop :=
   ∀ x ∈ s, ∀ y ∈ s,
