@@ -250,7 +250,7 @@ then `x` is a strict local minimizer.
 
 (Once `hessian_pd_local_lower_bound` is proved in your intended setting, you can
 derive the ε, ρ, and `hHess_lb` automatically and use this theorem.) -/
-theorem theorem_2_5
+theorem second_order_sufficient_condition
   [FiniteDimensional ℝ E]
     (hC2 : ContDiff ℝ 2 f)
     (x : E)
