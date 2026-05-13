@@ -71,8 +71,8 @@ theorem ConvexOn.convex_minimizers_mathlib
 
 -- first-order characterization of convexity
 lemma ConvexOn.add_fderiv_le
-    (hf_conv : ConvexOn ℝ s f)
-    (hf_diff : DifferentiableAt ℝ f x)
+    (h_conv : ConvexOn ℝ s f)
+    (h_diff : DifferentiableAt ℝ f x)
     (hx : x ∈ s) (hy : y ∈ s) :
     f x + fderiv ℝ f x (y - x) ≤ f y := by
 
@@ -83,7 +83,7 @@ lemma ConvexOn.add_fderiv_le
       calc f (x + α • (y - x))
         _ = f ((1 - α) • x + α • y) := by simp [sub_smul, smul_sub]; abel_nf
         _ ≤ (1 - α) * f x + α * f y :=
-          hf_conv.2 hx hy (sub_nonneg.mpr hα_le_one) hα_nonneg (sub_add_cancel 1 α)
+          h_conv.2 hx hy (sub_nonneg.mpr hα_le_one) hα_nonneg (sub_add_cancel 1 α)
 
     -- Step 2: arrange terms
     have h_arranged: ∀ (α : ℝ), 0 < α → α ≤ 1 →
@@ -102,7 +102,7 @@ lemma ConvexOn.add_fderiv_le
     -- 3b. compute the derivative of the full function
     have h_deriv : HasDerivAt (fun (α : ℝ) ↦ f (x + α • (y - x))) (fderiv ℝ f x (y - x)) (0 : ℝ) := by
       apply HasFDerivAt.comp_hasDerivAt 0 _ h_path
-      simpa using hf_diff.hasFDerivAt
+      simpa using h_diff.hasFDerivAt
     -- 3c. extract the limit of the difference quotient from the derivative
     have h_limit : Filter.Tendsto (fun α : ℝ ↦ (f (x + α • (y - x)) - f x) / α)
           (𝓝[>] (0 : ℝ)) (𝓝 (fderiv ℝ f x (y - x))) := by
@@ -117,3 +117,14 @@ lemma ConvexOn.add_fderiv_le
       apply le_of_tendsto h_limit
       filter_upwards [Ioo_mem_nhdsGT zero_lt_one] with α hα using h_arranged α hα.1 hα.2.le
     linarith
+
+-- theorem 2.7
+theorem ConvexOn.isMinOn_of_hasDerivAt_eq_zero
+    (h_conv : ConvexOn ℝ s f)
+    (h_diff : HasFDerivAt f (0 : E →L[ℝ] ℝ) x)
+    (hx : x ∈ s) :
+    IsMinOn f s x := by
+  intro y hy
+  have h := ConvexOn.add_fderiv_le h_conv h_diff.differentiableAt hx hy
+  simp [h_diff.fderiv] at h
+  exact h
