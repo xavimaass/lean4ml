@@ -1,5 +1,5 @@
 import Mathlib
-import Lean4ML.Optimization.LSmooth
+
 import Lean4ML.Optimization.NecessaryCondition
 
 noncomputable section
@@ -35,8 +35,7 @@ So:
   in finite dimensions, via compactness of the unit sphere.
 -/
 
-/-- Strict local minimizer: there exists a neighborhood `U` of `x` such that
-for all `y ∈ U` with `y ≠ x`, we have `f x < f y`. -/
+/-- Strict local minimizer: there is a neighborhood `U` of `x` where `f x < f y` for `y ≠ x`. -/
 def IsStrictLocalMin (f : E → ℝ) (x : E) : Prop :=
   ∃ U ∈ 𝓝 x, ∀ y ∈ U, y ≠ x → f x < f y
 
