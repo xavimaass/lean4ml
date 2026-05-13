@@ -1,5 +1,4 @@
 import Mathlib
-
 import lean4ml.Optimization.NecessaryCondition
 
 noncomputable section
