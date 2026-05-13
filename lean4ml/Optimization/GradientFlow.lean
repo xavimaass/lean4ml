@@ -22,8 +22,11 @@ has a solution on `[0, T]`.
 
 /-- A solution to the gradient flow ODE for `f` starting at `x₀` over `[0, T]`. -/
 structure GradientFlow (f : E → ℝ) (x₀ : E) (T : ℝ) where
+  /-- The flow trajectory. -/
   trajectory : ℝ → E
+  /-- The initial condition `trajectory 0 = x₀`. -/
   init : trajectory 0 = x₀
+  /-- The derivative equation `ẋ(t) = -∇f(x(t))`. -/
   hasDerivAt : ∀ t ∈ Icc 0 T, HasDerivAt trajectory (-(gradient f (trajectory t))) t
 
 namespace GradientFlow
@@ -242,10 +245,12 @@ lemma gradientFlow_extend_step
 /-
 A concrete gradient flow on `[0, 1/(4L+4)]` starting from any point.
 -/
+/-- A concrete local gradient flow on `[0, 1/(4L+4)]` starting from any point. -/
 def mk_local_flow
     (f : E → ℝ) (L : ℝ≥0) (x₀ : E)
   (_hC1 : ContDiff ℝ 1 f) (hL : LSmoothfn f L) :
     GradientFlow f x₀ (1 / (4 * (L : ℝ) + 4)) := by
+  have _ : ContDiff ℝ 1 f := _hC1
   -- Same construction as gradientFlow_local_existence
   set ε : ℝ := 1 / (4 * (L : ℝ) + 4) with hε_def
   have hε_pos : 0 < ε := by positivity
@@ -327,8 +332,11 @@ theorem gradientFlow_existence
 
 /-- A global solution to the gradient flow ODE defined for all `t ≥ 0`. -/
 structure GradientFlowGlobal (f : E → ℝ) (x₀ : E) where
+  /-- The global trajectory. -/
   trajectory : ℝ → E
+  /-- The initial condition `trajectory 0 = x₀`. -/
   init : trajectory 0 = x₀
+  /-- The derivative equation for all nonnegative times. -/
   hasDerivAt : ∀ t : ℝ, 0 ≤ t → HasDerivAt trajectory (-(gradient f (trajectory t))) t
 
 /-- A global gradient flow restricts to a bounded one. -/
@@ -336,7 +344,9 @@ def GradientFlowGlobal.restrict {f : E → ℝ} {x₀ : E}
   (φ : GradientFlowGlobal f x₀) (T : ℝ) (_hT : 0 ≤ T) : GradientFlow f x₀ T where
   trajectory := φ.trajectory
   init := φ.init
-  hasDerivAt := fun t ht => φ.hasDerivAt t ht.1
+  hasDerivAt := fun t ht => by
+    have _ : 0 ≤ T := _hT
+    exact φ.hasDerivAt t ht.1
 
 /-
 Two gradient flows from the same initial point have the same trajectory
