@@ -1,6 +1,6 @@
 import Mathlib
 
-import Lean4ML.Optimization.NecessaryCondition
+import lean4ml.Optimization.NecessaryCondition
 
 noncomputable section
 

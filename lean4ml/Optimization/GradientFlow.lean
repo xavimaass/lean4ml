@@ -1,5 +1,5 @@
 import Mathlib
-import Lean4ML.Optimization.LSmooth
+import lean4ml.Optimization.LSmooth
 
 noncomputable section
 

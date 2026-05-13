@@ -1,5 +1,5 @@
 import Mathlib
-import Lean4ML.Optimization.Defs
+import lean4ml.Optimization.Defs
 
 noncomputable section
 
