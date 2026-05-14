@@ -42,5 +42,13 @@ def hessian (f : E → ℝ) (x : E) : E →L[ℝ] E :=
 def IsStrictLocalMin (f : E → ℝ) (x : E) : Prop :=
   ∃ U ∈ 𝓝 x, ∀ y ∈ U, y ≠ x → f x < f y
 
+
+/-- Continuity of `t ↦ ⟪∇f(x + t p), p⟫` along a line. -/
+lemma hasGradientAt_of_contDiff_one
+    (f : E → ℝ) (hC1 : ContDiff ℝ 1 f) :
+    ∀ z, HasGradientAt f (gradient f z) z := by
+  intro z
+  exact (hC1.contDiffAt.differentiableAt one_ne_zero).hasGradientAt
+
 end Optimization
 end Lean4ML

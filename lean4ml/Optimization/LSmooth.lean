@@ -41,12 +41,6 @@ section TaylorAndSmoothness
 variable (f : E → ℝ) (L : NNReal) (s : Set E)
 variable {x y p : E} {γ : ℝ}
 
-/-- A `C^1` real-valued map on a Hilbert space has gradient everywhere. -/
-lemma hasGradientAt_of_contDiff_one
-    (hC1 : ContDiff ℝ 1 f) :
-    ∀ z, HasGradientAt f (gradient f z) z := by
-  intro z
-  exact (hC1.contDiffAt.differentiableAt one_ne_zero).hasGradientAt
 
 omit [CompleteSpace E] in
 /-- Compatibility lemma preserved from the previous layout: norm of `x + γ•(y-x) - x`. -/
@@ -75,46 +69,10 @@ lemma norm_gradient_sub_le
   have h_nonneg : 0 ≤ (L : ℝ) * ‖x - y‖ := by positivity
   exact (ENNReal.ofReal_le_ofReal_iff h_nonneg).mp key
 
-/-- Continuity of `t ↦ (Df (x + t p)) p` along a line. -/
-lemma continuous_fderiv_line_apply
-    {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
-    {f : E → F} (hC1 : ContDiff ℝ 1 f) (x p : E) :
-    Continuous (fun t : ℝ => (fderiv ℝ f (x + t • p)) p) := by
-  let _ := (inferInstance : CompleteSpace E)
-  have hpair_cont : Continuous (fun t : ℝ => (x + t • p, p)) :=
-    ((continuous_const).add (continuous_id.smul continuous_const)).prodMk continuous_const
-  simpa [Function.comp] using (hC1.continuous_fderiv_apply one_ne_zero).comp hpair_cont
-
-/-- Continuity of `t ↦ ⟪∇f(x + t p), p⟫` along a line. -/
-lemma continuous_inner_gradient_line
-    (hC1 : ContDiff ℝ 1 f) (x p : E) :
-    Continuous (fun t : ℝ => ⟪gradient f (x + t • p), p⟫) := by
-  have hf := hasGradientAt_of_contDiff_one (f := f) hC1
-  have h_eq :
-      (fun t : ℝ => ⟪gradient f (x + t • p), p⟫)
-        = (fun t : ℝ => (fderiv ℝ f (x + t • p)) p) := by
-    funext t
-    simpa using ((hf (x + t • p)).fderiv_apply (y := p)).symm
-  simpa [h_eq] using continuous_fderiv_line_apply (f := f) hC1 x p
-
-/-- Integrability of the line integrand `t ↦ ⟪∇f(x + t p), p⟫` on any interval. -/
-lemma intervalIntegrable_inner_gradient_line
-    (hC1 : ContDiff ℝ 1 f) (x p : E) (a b : ℝ) :
-    IntervalIntegrable (fun t : ℝ => ⟪gradient f (x + t • p), p⟫)
-      MeasureTheory.volume a b :=
-  (continuous_inner_gradient_line (f := f) hC1 x p).continuousOn.intervalIntegrable
-
-
-/-- Chain rule for composing a map with the line `τ ↦ x + τ • p`. -/
-lemma hasDerivAt_comp_line
-  {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
-  {f : E → F} (x p : E) (t : ℝ)
-  (hf : HasFDerivAt f (fderiv ℝ f (x + t • p)) (x + t • p)) :
-    HasDerivAt (fun τ : ℝ => f (x + τ • p))
-      ((fderiv ℝ f (x + t • p)) p) t := by
-  let _ := (inferInstance : CompleteSpace E)
-  simpa [one_smul] using hf.comp_hasDerivAt t (((hasDerivAt_id t).smul_const p).const_add x)
-
+/-! The following line lemmas were moved to `Lean4ML.Optimization.LineMap`:
+   `continuous_fderiv_line_apply`, `continuous_inner_gradient_line`,
+   `intervalIntegrable_inner_gradient_line`, and `hasDerivAt_comp_line`.
+   Import `Lean4ML.Optimization.LineMap` to access them. -/
 /-- Integrate an inner-product difference by splitting off the constant term. -/
 lemma integral_inner_sub_const
     (g : ℝ → E) (c w : E) (a b : ℝ)

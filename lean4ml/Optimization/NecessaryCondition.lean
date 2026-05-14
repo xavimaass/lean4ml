@@ -33,23 +33,9 @@ theorem local_min_gradient_zero
   exact inner_self_eq_zero.mp hself
 
 
-/-- The map `t ↦ hessian f (x + t • p) p` is continuous.
-    This is a specialisation of `continuous_fderiv_line_apply` to the gradient map. -/
-lemma continuous_hessian_line
-    (hC2 : ContDiff ℝ 2 f) (x p : E) :
-    Continuous (fun t : ℝ => hessian f (x + t • p) p) := by
-  apply continuous_fderiv_line_apply (f := fun y : E => gradient f y)
-  simpa [gradient] using
-    (InnerProductSpace.toDual ℝ E).symm.contDiff.comp
-      (hC2.fderiv_right (m := 1) (by norm_num))
-
-/-- The quadratic form of the Hessian scales as `α²`:
-    `⟪hessian f x (α • p), α • p⟫ = α² * ⟪hessian f x p, p⟫`. -/
-lemma hessian_inner_smul
-    (x p : E) (α : ℝ) :
-    ⟪hessian f x (α • p), α • p⟫ = α ^ 2 * ⟪hessian f x p, p⟫ := by
-  simp [real_inner_smul_left, real_inner_smul_right]
-  ring
+/-! Line-related Hessian lemmas moved to `Lean4ML.Optimization.LineMap`.
+   Import `Lean4ML.Optimization.LineMap` to access `continuous_hessian_line`
+   and `hessian_inner_smul`. -/
 
   /-- The gradient along the line `t ↦ x + t • p` equals the integral of the Hessian.
     This is `taylor_second_order_gradient` re-parametrised to an arbitrary endpoint `t`,
