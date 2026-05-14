@@ -2,9 +2,9 @@
 % It will be used both by the web and the print version.
 % It should *not* include the \begin{document}
 %
-% If you want to split the blueprint content into several files then
-% the current file can be a simple sequence of \input. Otherwise It
-% can start with a \section or \chapter for instance.
+% This blueprint is intended to track the Lean development in the repository.
+% Each statement below is connected to the corresponding Lean declaration via
+%   \lean{...}, \leanok, and \uses{...}.
 
 \begin{theorem}[Smale 1958]
   \label{thm:test_a}
@@ -12,42 +12,45 @@
   \leanok
   \uses{def:test_def}
   There is a homotopy of immersions of $𝕊^2$ into $ℝ^3$ from the inclusion map to
-  the antipodal map $a : q ↦ -q$.
+  the antipodal map $a : q \mapsto -q$.
 \end{theorem}
-
 
 \begin{proof}
   \leanok
-  \uses{thm:test_b} %, lem:open_ample_immersion
+  \uses{thm:test_b}
   This obviously follows from what we did so far.
 \end{proof}
 
-
-The following content is adapted from~\cite{Wright_Recht_2022}, but rewritten to match the Lean section \texttt{TaylorAndSmoothness} in \texttt{lean4ml/Optimization/LSmooth.lean}.
+% --------------------------------------------------------------------
+% Taylor and Smoothness
+% --------------------------------------------------------------------
 
 \section*{TaylorAndSmoothness}
+\label{sec:taylor_and_smoothness}
 
-Throughout this section, \(E\) is a real Hilbert space, \(f : E \to \mathbb{R}\), and \(s \subseteq E\).
+Throughout this section, $E$ is a real Hilbert space, $f : E \to \mathbb{R}$,
+$L \in \mathbb{R}_{\ge 0}$ (encoded in Lean as \texttt{NNReal}),
+and $s \subseteq E$.
 
-\begin{definition}
+\begin{definition}[$L$-smoothness on a set]
   \label{def:l_smooth_on}
   \lean{Lean4ML.Optimization.LSmoothOn}
   \leanok
-  We say that \(f\) is \(L\)-smooth on \(s\) if
+  We say that $f$ is $L$-smooth on $s$ if
   \[
-  \|\nabla f(x) - \nabla f(y)\| \le L\|x-y\|,\quad \forall x,y \in s.
+    \|\nabla f(x) - \nabla f(y)\| \le L\|x-y\|,\quad \forall x,y \in s.
   \]
   In Lean, this is encoded as \texttt{LipschitzOnWith L (fun x => gradient f x) s}.
 \end{definition}
 
-\begin{definition}
+\begin{definition}[Quadratic upper model]
   \label{def:quadratic_upper_bound}
   \lean{Lean4ML.Optimization.QuadraticUpperBound}
   \leanok
-  The quadratic upper model on \(s\) is
+  The quadratic upper model on $s$ is the property
   \[
-  f(y) \le f(x) + \langle \nabla f(x), y-x \rangle + \frac{L}{2}\|y-x\|^2,
-  \quad \forall x,y \in s.
+    f(y) \le f(x) + \langle \nabla f(x), y-x \rangle + \frac{L}{2}\|y-x\|^2,
+    \quad \forall x,y \in s.
   \]
 \end{definition}
 
@@ -55,74 +58,339 @@ Throughout this section, \(E\) is a real Hilbert space, \(f : E \to \mathbb{R}\)
   \label{thm:taylor_first_order}
   \lean{Lean4ML.Optimization.taylor_first_order}
   \leanok
-  \uses{def:quadratic_upper_bound}
-  If \(f\) is \(C^1\), then for all \(x,p \in E\),
+  \uses{}
+  If $f$ is $C^1$, then for all $x,p \in E$,
   \[
-  f(x+p) - f(x) = \int_0^1 \langle \nabla f(x + t p), p \rangle\,dt.
+    f(x+p) - f(x) = \int_0^1 \langle \nabla f(x + t p), p \rangle\,dt.
   \]
 \end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{}
+  This is proved in Lean by first establishing a vector-valued fundamental theorem
+  of calculus along the path $t \mapsto x + t\cdot p$, and then rewriting the
+  Fr\'echet derivative in terms of the gradient.
+\end{proof}
 
 \begin{lemma}[Pointwise bound on the line-segment integrand]
   \label{lem:lipschitz_gradient_pointwise}
   \lean{Lean4ML.Optimization.lipschitz_gradient_pointwise}
   \leanok
   \uses{def:l_smooth_on}
-  Assume \(f\) is \(L\)-smooth on \(s\), \(x \in s\), and \(x + \gamma (y-x) \in s\) with \(\gamma \ge 0\). Then
+  Assume $f$ is $L$-smooth on $s$, $x \in s$, and $x + \gamma (y-x) \in s$ with
+  $\gamma \ge 0$. Then
   \[
-  \left\langle \nabla f\bigl(x+\gamma (y-x)\bigr) - \nabla f(x), y-x \right\rangle
-  \le L\gamma\|y-x\|^2.
+    \left\langle \nabla f\bigl(x+\gamma (y-x)\bigr) - \nabla f(x),\, y-x \right\rangle
+    \le L\gamma\|y-x\|^2.
   \]
 \end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{}
+  In Lean, we first convert Lipschitz-on-set smoothness to a norm inequality
+  for gradient differences, then apply Cauchy--Schwarz to bound the inner
+  product by a product of norms, and finally rewrite the segment displacement
+  norm as $\gamma\|y-x\|$ (for $\gamma \ge 0$).
+\end{proof}
 
 \begin{theorem}[Quadratic upper bound from smoothness on a convex set]
   \label{thm:l_smooth_quadratic_upper_bound}
   \lean{Lean4ML.Optimization.l_smooth_quadratic_upper_bound}
   \leanok
   \uses{thm:taylor_first_order,lem:lipschitz_gradient_pointwise,def:l_smooth_on,def:quadratic_upper_bound}
-  Assume \(f\) is \(C^1\), \(L\)-smooth on a convex set \(s\), and \(x,y \in s\). Then
+  Assume $f$ is $C^1$, $L$-smooth on a convex set $s$, and $x,y \in s$. Then
   \[
-  f(y) \le f(x) + \langle \nabla f(x), y-x \rangle + \frac{L}{2}\|y-x\|^2.
+    f(y) \le f(x) + \langle \nabla f(x), y-x \rangle + \frac{L}{2}\|y-x\|^2.
   \]
 \end{theorem}
 
-In Lean, the proof follows exactly this decomposition: first prove the integral identity (\texttt{taylor\_first\_order}), then bound the integrand pointwise (\texttt{lipschitz\_gradient\_pointwise}), and finally integrate the bound on \([0,1]\).
+\begin{proof}
+  \leanok
+  \uses{thm:taylor_first_order,lem:lipschitz_gradient_pointwise}
+  The Lean proof follows exactly the standard decomposition:
+  \begin{enumerate}
+    \item apply Theorem~\ref{thm:taylor_first_order} with $p := y-x$ to write
+    $f(y)-f(x)$ as an integral of $\langle \nabla f(x+t(y-x)), y-x\rangle$;
+    \item subtract the constant term $\langle \nabla f(x), y-x\rangle$ inside the
+    integral, rewriting the remainder as an integral of
+    $\langle \nabla f(x+t(y-x)) - \nabla f(x), y-x\rangle$;
+    \item use convexity of $s$ to ensure $x+t(y-x)\in s$ for all $t\in[0,1]$;
+    \item bound the integrand pointwise using Lemma~\ref{lem:lipschitz_gradient_pointwise}
+    (with $\gamma=t$) and integrate the bound on $[0,1]$;
+    \item evaluate $\int_0^1 Lt\,dt = L/2$ to obtain the desired inequality.
+  \end{enumerate}
+\end{proof}
 
-When \(f\) is twice continuously differentiable, we can characterize the constant \(L\) in terms of the eigenvalues of the Hessian \(\nabla^{2}f(x)\). Specifically, we have
-\[
--LI \leq \nabla^{2}f(x) \leq LI,\quad \text{for all } x, \tag{2.10}
-\]
-as the following result proves.
+% --------------------------------------------------------------------
+% Hessian vs smoothness (Lemma 2.3-style statements)
+% --------------------------------------------------------------------
 
-\begin{lemma}
-Suppose \(f\) is twice continuously differentiable on \(\mathbb{R}^{n}\). Then if \(f\) is \(L\)-smooth, we have \(\nabla^{2}f(x) \preceq LI\) for all \(x\). Conversely, if \(-LI \preceq \nabla^{2}f(x) \preceq LI\), then \(f\) is \(L\)-smooth.
+\section*{HessianVsSmoothness}
+\label{sec:hessian_vs_smoothness}
+
+\begin{definition}[Hessian]
+  \label{def:hessian}
+  \lean{Lean4ML.Optimization.hessian}
+  \leanok
+  The Hessian of $f$ at $x$ is the Fr\'echet derivative of the gradient map:
+  \[
+    \nabla^2 f(x) := D(\nabla f)(x),
+  \]
+  encoded in Lean as \texttt{fderiv ℝ (fun y => gradient f y) x}.
+\end{definition}
+
+\begin{theorem}[Hessian operator-norm bound $\Rightarrow$ global smoothness]
+  \label{thm:hessianBoundImpliesLSmoothOnUniv}
+  \lean{Lean4ML.Optimization.hessianBoundImpliesLSmoothOnUniv}
+  \leanok
+  \uses{def:l_smooth_on,def:hessian}
+  If the gradient map is differentiable everywhere and its derivative (the Hessian)
+  has operator norm uniformly bounded by $L$, then $f$ is $L$-smooth on $\mathbb{R}$-universe
+  (i.e.\ on \texttt{Set.univ}).
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{}
+  In Lean, this is a direct application of a Mathlib theorem
+  \texttt{lipschitzWith\_of\_nnnorm\_fderiv\_le}, upgraded to the \texttt{Set.univ}
+  version via \texttt{lipschitzOnWith\_univ}.
+\end{proof}
+
+\begin{theorem}[Global smoothness $\Rightarrow$ Hessian quadratic-form upper bound]
+  \label{thm:lSmoothOnUnivImpliesHessianQuadraticFormBound}
+  \lean{Lean4ML.Optimization.lSmoothOnUnivImpliesHessianQuadraticFormBound}
+  \leanok
+  \uses{def:l_smooth_on,def:hessian}
+  If $f$ is $L$-smooth on \texttt{Set.univ}, then for all $x,p$,
+  \[
+    \langle \nabla^2 f(x)p, p\rangle \le L\|p\|^2.
+  \]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{}
+  The Lean proof extracts an operator-norm bound on $\nabla^2 f(x)$ from Lipschitz
+  smoothness using the lemma \texttt{opNorm\_fderiv\_le\_of\_lipschitz}, and then
+  bounds the quadratic form $\langle (\nabla^2 f(x))p,p\rangle$ by
+  $\|\nabla^2 f(x)\|\,\|p\|^2$ via Cauchy--Schwarz and the operator norm inequality.
+\end{proof}
+
+% --------------------------------------------------------------------
+% Necessary conditions (Theorem 2.4)
+% --------------------------------------------------------------------
+
+\section*{NecessaryConditions}
+\label{sec:necessary_conditions}
+
+\begin{theorem}[First-order necessary condition]
+  \label{thm:local_min_gradient_zero}
+  \lean{Lean4ML.Optimization.local_min_gradient_zero}
+  \leanok
+  \uses{}
+  If $f$ is continuously differentiable and $x$ is a local minimizer of $f$, then
+  \[
+    \nabla f(x) = 0.
+  \]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{}
+  In Lean, we use the Mathlib lemma \texttt{IsLocalMin.hasFDerivAt\_eq\_zero} applied
+  to the Fr\'echet derivative of $f$ at $x$, expressed via \texttt{HasGradientAt}.
+  Converting the resulting identity in the dual space back to an inner-product
+  statement yields $\langle \nabla f(x), \nabla f(x)\rangle = 0$ and hence
+  $\nabla f(x)=0$.
+\end{proof}
+
+\begin{theorem}[Second-order necessary condition: Hessian is PSD]
+  \label{thm:local_min_hessian_psd}
+  \lean{Lean4ML.Optimization.local_min_hessian_psd}
+  \leanok
+  \uses{thm:local_min_gradient_zero,def:hessian,thm:taylor_first_order}
+  Suppose $f$ is $C^2$ and $x$ is a local minimizer of $f$. Then for all $p$,
+  \[
+    0 \le \langle \nabla^2 f(x)p, p\rangle.
+  \]
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{}
+  The Lean proof is by contradiction. Assuming $\langle \nabla^2 f(x)p,p\rangle < 0$,
+  one uses an exact second-order Taylor expansion with an integral remainder (proved
+  in the file \texttt{NecessaryCondition.lean}) to show that for sufficiently small
+  $\alpha>0$,
+  \[
+    f(x+\alpha p) - f(x) < 0,
+  \]
+  contradicting local minimality. The analytic core is controlling the integral
+  remainder using continuity of the Hessian along the line segment.
+\end{proof}
+
+% --------------------------------------------------------------------
+% Sufficient condition (Theorem 2.5, operational form)
+% --------------------------------------------------------------------
+
+\section*{SufficientConditions}
+\label{sec:sufficient_conditions}
+
+\begin{definition}[Strict local minimizer]
+  \label{def:IsStrictLocalMin}
+  \lean{Lean4ML.Optimization.IsStrictLocalMin}
+  \leanok
+  A strict local minimizer is a point $x$ for which there exists a neighborhood
+  $U$ of $x$ such that $f(x) < f(y)$ for all $y\in U$ with $y\neq x$.
+\end{definition}
+
+\begin{lemma}[Taylor lower bound from a uniform Hessian lower bound]
+  \label{lem:taylor_lower_bound_from_hessian_lb}
+  \lean{Lean4ML.Optimization.taylor_lower_bound_from_hessian_lb}
+  \leanok
+  \uses{def:hessian}
+  Assume $f$ is $C^2$ and $\nabla f(x)=0$. If there exist $\varepsilon>0$ and $\rho>0$
+  such that for all $y\in B(x,\rho)$ and all $p$,
+  \[
+    \varepsilon\|p\|^2 \le \langle \nabla^2 f(y)p,p\rangle,
+  \]
+  then for all $p$ with $\|p\|<\rho$,
+  \[
+    \frac{\varepsilon}{2}\|p\|^2 \le f(x+p)-f(x).
+  \]
 \end{lemma}
 
 \begin{proof}
-From (2.9), we have, by setting \(y = x + \alpha p\) for some \(\alpha > 0\), that
-\[
-f(x + \alpha p) - f(x) - \alpha \nabla f(x)^{T}p \leq \frac{L}{2}\alpha^{2}\|p\|^{2}.
-\]
-From formula (2.5) from Taylor's theorem, we have for some \(\gamma \in (0,1)\) that
-\[
-f(x + \alpha p) - f(x) - \alpha \nabla f(x)^{T}p = \frac{1}{2}\alpha^{2}p^{T}\nabla^{2}f(x + \gamma \alpha p)p.
-\]
-By comparing these two expressions, we obtain
-\[
-p^{T}\nabla^{2}f(x + \gamma \alpha p)p \leq L\|p\|^{2}.
-\]
-By letting \(\alpha \downarrow 0\), we have that all eigenvalues of \(\nabla^{2}f(x)\) are bounded by \(L\), so that \(\nabla^{2}f(x) \preceq LI\), as claimed.
+  \leanok
+  \uses{}
+  This is obtained by integrating the pointwise Hessian lower bound inside the
+  exact double-integral remainder form of Taylor's theorem (proved earlier in the
+  necessary-condition development), and then evaluating the resulting elementary
+  integral on $[0,1]$.
+\end{proof}
 
-Suppose now that \(-LI \preceq \nabla^{2}f(x) \preceq LI\) for all \(x\), so that \(\|\nabla^{2}f(x)\| \leq L\) for all \(x\). We have, from (2.4), that
-\[
-\begin{aligned}
-\|\nabla f(y) - \nabla f(x)\| &= \left\|\int_{t=0}^{1} \nabla^{2}f(x + t(y - x))(y - x) \, dt\right\| \\
-&\leq \int_{t=0}^{1} \|\nabla^{2}f(x + t(y - x))\| \|y - x\| \, dt \\
-&\leq \int_{t=0}^{1} L \|y - x\| \, dt = L\|y - x\|,
-\end{aligned}
-\]
-as required. This completes the proof.
+\begin{theorem}[Second-order sufficient condition (uniform form)]
+  \label{thm:strict_local_min_of_gradient_zero_hessian_uniform_lb}
+  \lean{Lean4ML.Optimization.strict_local_min_of_gradient_zero_hessian_uniform_lb}
+  \leanok
+  \uses{def:IsStrictLocalMin,lem:taylor_lower_bound_from_hessian_lb,def:hessian}
+  Suppose $f$ is $C^2$ and $\nabla f(x)=0$. If there exist $\varepsilon>0$ and $\rho>0$
+  such that for all $y\in B(x,\rho)$ and all $p$,
+  \[
+    \varepsilon\|p\|^2 \le \langle \nabla^2 f(y)p,p\rangle,
+  \]
+  then $x$ is a strict local minimizer of $f$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{}
+  Take the neighborhood $U := B(x,\rho)$. For any $y\in U$ with $y\neq x$, set
+  $p:=y-x$ so that $y=x+p$ and $\|p\|<\rho$. The previous lemma gives a strictly
+  positive lower bound on $f(x+p)-f(x)$, hence $f(x)<f(y)$.
+\end{proof}
+
+\begin{theorem}[Second-order sufficient condition (positive definite Hessian, finite-dimensional)]
+  \label{thm:second_order_sufficient_condition}
+  \lean{Lean4ML.Optimization.second_order_sufficient_condition}
+  \leanok
+  \uses{thm:strict_local_min_of_gradient_zero_hessian_uniform_lb,def:hessian}
+  In finite dimensions, if $f$ is $C^2$, $\nabla f(x)=0$, and the Hessian at $x$
+  is positive definite in the sense that
+  \[
+    p\neq 0 \implies 0 < \langle \nabla^2 f(x)p,p\rangle,
+  \]
+  then $x$ is a strict local minimizer.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{}
+  In Lean, the proof packages the analytic step ``positive definite at $x$ implies
+  a uniform coercivity bound on a small ball around $x$'' (proved using compactness
+  of the unit sphere in finite dimensions), and then applies the uniform-form
+  sufficient condition.
 \end{proof}
 
 
-\bibliographystyle{alpha}
-\bibliography{references}
+% --------------------------------------------------------------------
+% Gradient Flow
+% --------------------------------------------------------------------
+
+\section*{GradientFlow}
+\label{sec:gradient_flow}
+
+\begin{definition}[Gradient flow certificate]
+  \label{def:GradientFlow}
+  \lean{Lean4ML.Optimization.GradientFlow}
+  \leanok
+  A \emph{gradient flow} for $f : E \to \mathbb{R}$ with initial point $x_0 \in E$
+  on a time interval $[0,T]$ is a trajectory $x : \mathbb{R}\to E$ such that
+  $x(0)=x_0$ and $\dot x(t) = -\nabla f(x(t))$ for all $t\in[0,T]$.
+\end{definition}
+
+\begin{theorem}[Gradient flow existence on a finite time horizon]
+  \label{thm:gradientFlow_existence}
+  \lean{Lean4ML.Optimization.gradientFlow_existence}
+  \leanok
+  \uses{def:GradientFlow,def:l_smooth_on}
+  If $f$ is $C^1$, globally $L$-smooth, $T>0$, and $x_0\in E$, then there exists
+  a gradient flow solution on $[0,T]$ starting at $x_0$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{}
+  The Lean proof proceeds in three steps.
+  \begin{enumerate}
+    \item (\emph{Uniform local existence}) Using Picard--Lindel\"of for the ODE
+    $\dot x(t) = -\nabla f(x(t))$, global $L$-smoothness gives a uniform step size
+    $\delta = \frac{1}{4L+4}$ such that for every starting point $x_0$ there is a
+    solution on $[0,\delta]$.
+    \item (\emph{Iteration / extension}) By concatenating these local solutions,
+    we obtain a solution on $[0,n\delta]$ for any $n\in\mathbb{N}$.
+    \item (\emph{Restriction}) Taking $n$ large enough so that $T \le n\delta$ and
+    restricting the trajectory yields a solution on $[0,T]$.
+  \end{enumerate}
+\end{proof}
+
+% --------------------------------------------------------------------
+% Gradient Flow (unbounded time)
+% --------------------------------------------------------------------
+
+\begin{definition}[Global gradient flow]
+  \label{def:GradientFlowGlobal}
+  \lean{Lean4ML.Optimization.GradientFlowGlobal}
+  \leanok
+  A \emph{global} gradient flow for $f : E \to \mathbb{R}$ with initial point $x_0$
+  is a trajectory $x : \mathbb{R}\to E$ such that $x(0)=x_0$ and
+  $\dot x(t) = -\nabla f(x(t))$ for all $t \ge 0$.
+\end{definition}
+
+\begin{theorem}[Global gradient flow existence for all $t \ge 0$]
+  \label{thm:gradientFlowGlobal_existence}
+  \lean{Lean4ML.Optimization.gradientFlowGlobal_existence}
+  \leanok
+  \uses{def:GradientFlowGlobal,thm:gradientFlow_existence}
+  If $f$ is $C^1$ and globally $L$-smooth, then for every $x_0\in E$ there exists
+  a global gradient flow solution defined for all $t \ge 0$.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{}
+  For each $n\in\mathbb{N}$, apply the finite-horizon existence theorem to obtain
+  a solution on $[0,n+1]$. Uniqueness of solutions on overlapping intervals implies
+  these flows are consistent under restriction. Define the global trajectory by
+  \[
+    x(t) := x_{\lceil t\rceil}(t),
+  \]
+  i.e.\ evaluate the $(\lceil t\rceil)$-th finite-horizon flow at time $t$.
+  A locality (\emph{eventually equal}) argument shows this global definition agrees
+  with one fixed finite-horizon solution in a neighborhood of each $t\ge 0$, so
+  differentiability and the ODE identity transfer pointwise, yielding a global
+  gradient flow.
+\end{proof}
