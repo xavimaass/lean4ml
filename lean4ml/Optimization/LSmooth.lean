@@ -1,5 +1,6 @@
 import Mathlib
 import lean4ml.Optimization.Defs
+import lean4ml.Optimization.LineMap
 
 noncomputable section
 
@@ -46,6 +47,13 @@ lemma hasGradientAt_of_contDiff_one
     ∀ z, HasGradientAt f (gradient f z) z := by
   intro z
   exact (hC1.contDiffAt.differentiableAt one_ne_zero).hasGradientAt
+
+omit [CompleteSpace E] in
+/-- Compatibility lemma preserved from the previous layout: norm of `x + γ•(y-x) - x`. -/
+lemma norm_add_smul_sub_eq (hγ : 0 ≤ γ) (x y : E) :
+    ‖(x + γ • (y - x)) - x‖ = γ * ‖y - x‖ := by
+  rw [show (x + γ • (y - x)) - x = γ • (y - x) by abel]
+  simp [norm_smul, Real.norm_of_nonneg hγ]
 
 /-- Norm form of `LSmoothOn`: gradient differences are bounded by `L * ‖x-y‖`. -/
 lemma norm_gradient_sub_le
@@ -96,18 +104,6 @@ lemma intervalIntegrable_inner_gradient_line
       MeasureTheory.volume a b :=
   (continuous_inner_gradient_line (f := f) hC1 x p).continuousOn.intervalIntegrable
 
-/-- A line segment displacement has norm `γ * ‖y - x‖` for `γ ≥ 0`. -/
-lemma norm_add_smul_sub_eq (hγ : 0 ≤ γ) (x y : E) :
-    ‖(x + γ • (y - x)) - x‖ = γ * ‖y - x‖ := by
-  let _ := (inferInstance : CompleteSpace E)
-  rw [show (x + γ • (y - x)) - x = γ • (y - x) by abel]
-  simp [norm_smul, Real.norm_of_nonneg hγ]
-
-/-- Derivative of the line map `τ ↦ x + τ • p`. -/
-lemma hasDerivAt_line_add_smul (x p : E) (t : ℝ) :
-    HasDerivAt (fun τ : ℝ => x + τ • p) p t := by
-  let _ := (inferInstance : CompleteSpace E)
-  simpa [one_smul] using ((hasDerivAt_id t).smul_const p).const_add x
 
 /-- Chain rule for composing a map with the line `τ ↦ x + τ • p`. -/
 lemma hasDerivAt_comp_line
@@ -117,7 +113,7 @@ lemma hasDerivAt_comp_line
     HasDerivAt (fun τ : ℝ => f (x + τ • p))
       ((fderiv ℝ f (x + t • p)) p) t := by
   let _ := (inferInstance : CompleteSpace E)
-  simpa using hf.comp_hasDerivAt t (hasDerivAt_line_add_smul (x := x) (p := p) (t := t))
+  simpa [one_smul] using hf.comp_hasDerivAt t (((hasDerivAt_id t).smul_const p).const_add x)
 
 /-- Integrate an inner-product difference by splitting off the constant term. -/
 lemma integral_inner_sub_const
@@ -155,13 +151,6 @@ lemma inner_sub_left_eq (u v w : E) :
   let _ := (inferInstance : CompleteSpace E)
   simp [sub_eq_add_neg, inner_add_left]
 
-/-- Segment point written as `x + t • (y - x)` remains in a convex set for `t ∈ [0,1]`. -/
-lemma Convex.add_smul_sub_mem_unit
-    (hConv : Convex ℝ s) (hx : x ∈ s) (hy : y ∈ s)
-    {t : ℝ} (ht : t ∈ Icc (0 : ℝ) 1) :
-    x + t • (y - x) ∈ s := by
-  let _ := (inferInstance : CompleteSpace E)
-  exact hConv.add_smul_sub_mem hx hy ht
 
 /-- A vector-valued first-order Taylor formula along a line segment. -/
 theorem taylor_first_order_vector
@@ -300,7 +289,7 @@ theorem l_smooth_quadratic_upper_bound
     refine intervalIntegral_mono_of_continuous (a := (0 : ℝ)) (b := 1)
       (hab := by norm_num) hcont_left hcont_right ?_
     intro t ht
-    have hγ : x + t • (y - x) ∈ s := Convex.add_smul_sub_mem_unit (s := s) hConv hx hy ht
+    have hγ : x + t • (y - x) ∈ s := Convex.add_smul_sub_mem_unit (s := s) hConv x y hx hy ht
     have ht0 : 0 ≤ t := ht.1
     simpa [p] using
       (lipschitz_gradient_pointwise (f := f) (L := L) (s := s)
