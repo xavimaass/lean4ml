@@ -1,4 +1,6 @@
 import Mathlib
+
+import lean4ml.Optimization.Defs
 import lean4ml.Optimization.NecessaryCondition
 
 noncomputable section
@@ -33,10 +35,6 @@ So:
 * The “PD ⇒ uniform LB” lemma (`hessian_pd_local_lower_bound`) is now fully proved
   in finite dimensions, via compactness of the unit sphere.
 -/
-
-/-- Strict local minimizer: there is a neighborhood `U` of `x` where `f x < f y` for `y ≠ x`. -/
-def IsStrictLocalMin (f : E → ℝ) (x : E) : Prop :=
-  ∃ U ∈ 𝓝 x, ∀ y ∈ U, y ≠ x → f x < f y
 
 section SufficientConditions
 

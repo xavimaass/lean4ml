@@ -37,5 +37,10 @@ def QuadraticUpperBound (f : E → ℝ) (L : NNReal) (s : Set E) : Prop :=
 def hessian (f : E → ℝ) (x : E) : E →L[ℝ] E :=
   fderiv ℝ (fun y => gradient f y) x
 
+
+/-- Strict local minimizer: there is a neighborhood `U` of `x` where `f x < f y` for `y ≠ x`. -/
+def IsStrictLocalMin (f : E → ℝ) (x : E) : Prop :=
+  ∃ U ∈ 𝓝 x, ∀ y ∈ U, y ≠ x → f x < f y
+
 end Optimization
 end Lean4ML
