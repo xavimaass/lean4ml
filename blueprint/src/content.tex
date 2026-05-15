@@ -384,6 +384,44 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   \end{enumerate}
 \end{proof}
 
+\begin{theorem}[Descent Lemma for Gradient Descent]\label{thm:gradient_descent_one_step}
+  \lean{Lean4ML.Optimization.gradient_descent_one_step}
+  \leanok{}
+  \uses{thm:l_smooth_quadratic_upper_bound}
+  If $f \in C^1$, $f$ is $L$-smooth on a convex set $s$, $x \in s$, $\alpha \geq 0$, and
+  $x - \alpha \nabla f(x) \in s$, then
+  \[
+    f(x - \alpha \nabla f(x)) \le f(x) - \alpha\left(1 - \frac{L\alpha}{2}\right) \|\nabla f(x)\|^2.
+  \]
+\end{theorem}
+\begin{proof}
+  Let $y := x - \alpha \nabla f(x)$ and $p := y - x = -\alpha \nabla f(x)$.
+
+  \textbf{Step 1:} Compute the inner product.
+  \[
+    \langle \nabla f(x), p \rangle = \langle \nabla f(x), -\alpha \nabla f(x) \rangle = -\alpha \|\nabla f(x)\|^2.
+  \]
+
+  \textbf{Step 2:} Compute the norm squared of $p$ using $\alpha \ge 0$ to simplify $|\alpha| = \alpha$.
+  \[
+    \|p\|^2 = \|-\alpha \nabla f(x)\|^2 = (\|\alpha \nabla f(x)\|)^2 = \alpha^2 \|\nabla f(x)\|^2.
+  \]
+
+  \textbf{Step 3:} Apply Theorem~\ref{thm:l_smooth_quadratic_upper_bound} with the points $x$ and $y = x + p$:
+  \[
+    f(y) \le f(x) + \langle \nabla f(x), p \rangle + \frac{L}{2} \|p\|^2.
+  \]
+
+  \textbf{Step 4:} Substitute the expressions from Steps 1 and 2:
+  \begin{align*}
+    f(y) &\le f(x) + (-\alpha \|\nabla f(x)\|^2) + \frac{L}{2}(\alpha^2 \|\nabla f(x)\|^2) \\
+    &= f(x) - \alpha \|\nabla f(x)\|^2 + \frac{L\alpha^2}{2} \|\nabla f(x)\|^2 \\
+    &= f(x) - \alpha\left(1 - \frac{L\alpha}{2}\right) \|\nabla f(x)\|^2.
+  \end{align*}
+  This completes the proof.
+\end{proof}
+
+
 % ====================================================================
 % Hessian vs Smoothness  (Optimization/LSmooth.lean, section HessianVsSmoothness)
 % ====================================================================
