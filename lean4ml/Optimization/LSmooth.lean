@@ -276,51 +276,31 @@ end TaylorAndSmoothness
 section HessianVsSmoothness
 
 variable (f : E → ℝ) (L : NNReal)
-
-/-- Statement of Lemma 2.3 (→): Hessian bound implies global `L`-smoothness. -/
-def HessianBoundImpliesLSmoothOnUnivStatement : Prop :=
-  (∀ x, HasFDerivAt (fun y => gradient f y) (hessian f x) x) →
-    (∀ x, ‖hessian f x‖ ≤ (L : ℝ)) →
-    LSmoothOn f L Set.univ
-
-/-- Statement of Lemma 2.3 (← direction in quadratic-form style). -/
-def LSmoothOnUnivImpliesHessianQuadraticFormBoundStatement : Prop :=
-  LSmoothOn f L Set.univ →
-    (∀ x, HasFDerivAt (fun y => gradient f y) (hessian f x) x) →
-    ∀ x p, ⟪hessian f x p, p⟫ ≤ (L : ℝ) * ‖p‖ ^ (2 : ℕ)
-
-/-
-Proof notes for implementation:
-* `HessianBoundImpliesLSmoothOnUnivStatement` should use a Mathlib Lipschitz theorem from
-  derivative operator-norm bounds on convex domains.
-* `LSmoothOnUnivImpliesHessianQuadraticFormBoundStatement` follows via the quadratic model,
-  second-order expansion, and a limit argument.
--/
-
 /-- If the Hessian operator norm is globally bounded by `L`, then `f` is globally `L`-smooth. -/
+
 theorem hessianBoundImpliesLSmoothOnUniv
     (hHasFDeriv : ∀ x, HasFDerivAt (fun y => gradient f y) (hessian f x) x)
     (hBound : ∀ x, ‖hessian f x‖ ≤ (L : ℝ)) :
-    LSmoothOn f L Set.univ := by
+    LSmoothfn f L := by
   have hDiff : ∀ x, DifferentiableAt ℝ (fun y => gradient f y) x :=
     fun x => (hHasFDeriv x).differentiableAt
   have hBound' : ∀ x, ‖fderiv ℝ (fun y => gradient f y) x‖₊ ≤ L := by
     intro x
     rw [← NNReal.coe_le_coe]
     simpa [hessian] using hBound x
-  exact lipschitzOnWith_univ.2 <|
-    lipschitzWith_of_nnnorm_fderiv_le hDiff hBound'
+  exact lipschitzWith_of_nnnorm_fderiv_le hDiff hBound'
 
 /-- Global `L`-smoothness implies the Hessian quadratic-form upper bound everywhere. -/
 theorem lSmoothOnUnivImpliesHessianQuadraticFormBound
-    (hL : LSmoothOn f L Set.univ)
+    (hL : LSmoothfn f L)
     (hHasFDeriv : ∀ x, HasFDerivAt (fun y => gradient f y) (hessian f x) x) :
     ∀ x p, ⟪hessian f x p, p⟫ ≤ (L : ℝ) * ‖p‖ ^ (2 : ℕ) := by
   intro x p
   have hOpNorm : ‖hessian f x‖ ≤ (L : ℝ) := by
+    have hL_univ := lSmooth_iff_lSmoothOn_univ.mp hL
     simpa [hessian] using
       opNorm_fderiv_le_of_lipschitz
-        (hL := hL)
+        (hL := hL_univ)
         (hf := hHasFDeriv x)
         (hs := Filter.univ_mem)
   calc
@@ -329,12 +309,16 @@ theorem lSmoothOnUnivImpliesHessianQuadraticFormBound
     _ ≤ (L : ℝ) * ‖p‖ ^ (2 : ℕ) := by gcongr
 
 theorem hessianBoundImpliesLSmoothOnUnivStatement_true :
-    HessianBoundImpliesLSmoothOnUnivStatement (f := f) (L := L) := by
+    (∀ x, HasFDerivAt (fun y => gradient f y) (hessian f x) x) →
+      (∀ x, ‖hessian f x‖ ≤ (L : ℝ)) →
+      LSmoothfn f L := by
   intro hHasFDeriv hBound
   exact hessianBoundImpliesLSmoothOnUniv (f := f) (L := L) hHasFDeriv hBound
 
 theorem lSmoothOnUnivImpliesHessianQuadraticFormBoundStatement_true :
-    LSmoothOnUnivImpliesHessianQuadraticFormBoundStatement (f := f) (L := L) := by
+    LSmoothfn f L →
+      (∀ x, HasFDerivAt (fun y => gradient f y) (hessian f x) x) →
+      ∀ x p, ⟪hessian f x p, p⟫ ≤ (L : ℝ) * ‖p‖ ^ (2 : ℕ) := by
   intro hL hHasFDeriv x p
   exact lSmoothOnUnivImpliesHessianQuadraticFormBound (f := f) (L := L) hL hHasFDeriv x p
 
