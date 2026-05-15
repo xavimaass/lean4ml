@@ -41,6 +41,8 @@ def hessian (f : E → ℝ) (x : E) : E →L[ℝ] E :=
 def IsStrictLocalMin (f : E → ℝ) (x : E) : Prop :=
   ∃ U ∈ 𝓝 x, ∀ y ∈ U, y ≠ x → f x < f y
 
+def GloballyPL (f : E → ℝ) (μ : ℝ) (_hμ : 0 < μ) : Prop :=
+  ∀ x : E, ‖gradient f x‖^2 ≥ 2 * μ * (f x - iInf f)
 
 /-- Continuity of `t ↦ ⟪∇f(x + t p), p⟫` along a line. -/
 lemma hasGradientAt_of_contDiff_one

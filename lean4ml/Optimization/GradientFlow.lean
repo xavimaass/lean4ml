@@ -438,5 +438,102 @@ theorem gradientFlowGlobal_existence
     have h_ev := global_traj_eventuallyEq hL φ ht
     exact ((φ ⌈t⌉₊).hasDerivAt t h_mem).congr_of_eventuallyEq h_ev
 
+/-! ### Polyak–Łojasiewicz condition and convergence -/
+
+section PL
+
+variable {f : E → ℝ} {μ : ℝ} {hμ : 0 < μ} {x₀ : E}
+
+/-- The energy gap function `g(t) = f(φ(t)) - iInf f` satisfies
+    `g'(t) = -‖∇f(φ(t))‖²` and, under the PL condition,
+    `g'(t) ≤ -2μ · g(t)`. -/
+lemma energyGap_hasDerivAt_and_le
+    (hC1 : ContDiff ℝ 1 f)
+    (hPL : GloballyPL f μ hμ)
+    (φ : GradientFlowGlobal f x₀)
+    {t : ℝ} (ht : 0 ≤ t) :
+    let g := fun s => f (φ.trajectory s) - iInf f
+    HasDerivAt g (-‖gradient f (φ.trajectory t)‖ ^ 2) t ∧
+    -‖gradient f (φ.trajectory t)‖ ^ 2 ≤ -2 * μ * g t := by
+  set g := fun s => f (φ.trajectory s) - iInf f
+  -- Step 1: compute g'(t) = -‖∇f(φ(t))‖²
+  have hg_deriv : HasDerivAt g (-‖gradient f (φ.trajectory t)‖ ^ 2) t := by
+    -- d/dt f(φ(t)) via the chain rule, as in hasDerivAt_energy
+    have hφ_deriv : HasDerivAt φ.trajectory (-(gradient f (φ.trajectory t))) t :=
+      φ.hasDerivAt t ht
+    have hf_fderiv : HasFDerivAt f (fderiv ℝ f (φ.trajectory t)) (φ.trajectory t) :=
+      (hC1.contDiffAt.differentiableAt (by norm_num)).hasFDerivAt
+    have h_chain : HasDerivAt (fun s => f (φ.trajectory s))
+        (inner ℝ (gradient f (φ.trajectory t)) (deriv φ.trajectory t)) t := by
+      have hφ' : HasDerivAt φ.trajectory (deriv φ.trajectory t) t := by
+        simpa [hφ_deriv.deriv] using hφ_deriv
+      convert HasFDerivAt.comp_hasDerivAt t hf_fderiv hφ' using 1
+      simp [gradient]
+    have h_energy : HasDerivAt (fun s => f (φ.trajectory s))
+        (-‖gradient f (φ.trajectory t)‖ ^ 2) t := by
+      convert h_chain using 1
+      rw [hφ_deriv.deriv, inner_neg_right, real_inner_self_eq_norm_sq]
+    -- g = (fun s => f(φ(s))) - (fun _ => iInf f)
+    have h_const : HasDerivAt (fun _ : ℝ => iInf f) 0 t :=
+      hasDerivAt_const t _
+    simpa using h_energy.sub h_const
+  -- Step 2: PL gives -‖∇f(φ(t))‖² ≤ -2μ · g(t)
+  have hg_ineq : -‖gradient f (φ.trajectory t)‖ ^ 2 ≤ -2 * μ * g t := by
+    have := hPL (φ.trajectory t)
+    simp only [g]
+    nlinarith
+  exact ⟨hg_deriv, hg_ineq⟩
+
+/-
+Under the globally μ-PL condition, the energy gap satisfies the
+    exponential bound `f(φ(t)) - iInf f ≤ (f(x₀) - iInf f) * exp(-2μt)`.
+-/
+lemma energyGap_exp_bound
+    (hC1 : ContDiff ℝ 1 f)
+    (hPL : GloballyPL f μ hμ)
+    (φ : GradientFlowGlobal f x₀)
+    {t : ℝ} (ht : 0 ≤ t) :
+    f (φ.trajectory t) - iInf f ≤
+      (f x₀ - iInf f) * Real.exp (-2 * μ * t) := by
+  have h_g : ∀ t ≥ 0, HasDerivAt (fun s => f (φ.trajectory s) - iInf f) (-‖gradient f (φ.trajectory t)‖ ^ 2) t := by
+    exact fun t ht => ( energyGap_hasDerivAt_and_le hC1 hPL φ ht ).1;
+  have h_g_le : ∀ t ≥ 0, -‖gradient f (φ.trajectory t)‖ ^ 2 ≤ -2 * μ * (f (φ.trajectory t) - iInf f) := by
+    exact fun t ht => by nlinarith [ hPL ( φ.trajectory t ) ] ;
+  have h_g_le : ∀ t ≥ 0, deriv (fun s => (f (φ.trajectory s) - iInf f) * Real.exp (2 * μ * s)) t ≤ 0 := by
+    intro t ht
+    have h_deriv : deriv (fun s => (f (φ.trajectory s) - iInf f) * Real.exp (2 * μ * s)) t = (-‖gradient f (φ.trajectory t)‖ ^ 2) * Real.exp (2 * μ * t) + (f (φ.trajectory t) - iInf f) * (2 * μ * Real.exp (2 * μ * t)) := by
+      convert HasDerivAt.deriv ( HasDerivAt.mul ( h_g t ht ) ( HasDerivAt.exp ( HasDerivAt.const_mul ( 2 * μ ) ( hasDerivAt_id t ) ) ) ) using 1 ; norm_num [ mul_assoc, mul_comm ];
+    nlinarith [ h_g_le t ht, Real.exp_pos ( 2 * μ * t ) ];
+  have h_g_le : ∀ a b, 0 ≤ a → a ≤ b → (f (φ.trajectory b) - iInf f) * Real.exp (2 * μ * b) ≤ (f (φ.trajectory a) - iInf f) * Real.exp (2 * μ * a) := by
+    intro a b ha hb; by_contra h_contra; push Not at h_contra; (
+    have := exists_deriv_eq_slope ( f := fun s => ( f ( φ.trajectory s ) - iInf f ) * Real.exp ( 2 * μ * s ) ) ( show a < b from hb.lt_of_ne ( by rintro rfl; linarith ) ) ; simp_all +decide [ mul_comm ] ;
+    apply_mod_cast absurd ( this _ _ ) _;
+    · exact ContinuousOn.mul ( ContinuousOn.rexp ( continuousOn_id.mul continuousOn_const ) ) ( ContinuousOn.sub ( hC1.continuous.comp_continuousOn ( show ContinuousOn ( fun s => φ.trajectory s ) ( Icc a b ) from continuousOn_of_forall_continuousAt fun s hs => by exact HasDerivAt.continuousAt ( φ.hasDerivAt s ( by linarith [ hs.1 ] ) ) ) ) continuousOn_const );
+    · exact fun x hx => DifferentiableAt.differentiableWithinAt ( by exact DifferentiableAt.mul ( DifferentiableAt.exp ( differentiableAt_id.mul_const _ ) ) ( DifferentiableAt.sub ( h_g x ( by linarith [ hx.1 ] ) |> HasDerivAt.differentiableAt ) ( differentiableAt_const _ ) ) );
+    · exact fun ⟨ c, ⟨ hc₁, hc₂ ⟩, hc ⟩ => by have := h_g_le c ( by linarith ) ; rw [ hc ] at this; rw [ div_le_iff₀ ] at this <;> linarith;);
+  have := h_g_le 0 t le_rfl ht; simp_all +decide [ Real.exp_neg ] ;
+  rw [ ← div_eq_mul_inv, div_add', le_div_iff₀ ] <;> first | positivity | rw [ φ.init ] at this ; linarith;
+
+/-
+**Convergence theorem.**
+    For a globally μ-PL function, the gradient flow converges to the
+    global minimum: `f(φ(t)) → iInf f` as `t → ∞`.
+-/
+theorem gradientFlow_PL_tendsto
+    (hC1 : ContDiff ℝ 1 f)
+    (hPL : GloballyPL f μ hμ)
+    (hbdd : BddBelow (Set.range f))
+    (φ : GradientFlowGlobal f x₀) :
+    Filter.Tendsto (fun t => f (φ.trajectory t)) Filter.atTop (nhds (iInf f)) := by
+  -- By the squeeze theorem, it suffices to show that $0 \leq f(\varphi(t)) - \inf f \leq (f x₀ - \inf f) \exp(-2 \mu t)$.
+  suffices h_squeeze : ∀ t ≥ 0, 0 ≤ f (φ.trajectory t) - iInf f ∧ f (φ.trajectory t) - iInf f ≤ (f x₀ - iInf f) * Real.exp (-2 * μ * t) by
+    -- By the squeeze theorem, it suffices to show that $(f x₀ - \inf f) \exp(-2 \mu t) \to 0$ as $t \to \infty$.
+    suffices h_exp_zero : Filter.Tendsto (fun t => (f x₀ - iInf f) * Real.exp (-2 * μ * t)) Filter.atTop (nhds 0) by
+      exact tendsto_iff_norm_sub_tendsto_zero.mpr ( squeeze_zero_norm' ( Filter.eventually_atTop.mpr ⟨ 0, fun t ht => by simpa [ abs_of_nonneg ( h_squeeze t ht |>.1 ) ] using h_squeeze t ht |>.2 ⟩ ) h_exp_zero );
+    simpa using tendsto_const_nhds.mul ( Real.tendsto_exp_atBot.comp <| Filter.tendsto_neg_atTop_atBot.comp <| Filter.tendsto_id.const_mul_atTop <| by positivity );
+  exact fun t ht => ⟨ sub_nonneg.2 <| ciInf_le hbdd _, by linarith [ energyGap_exp_bound hC1 hPL φ ht ] ⟩
+
+end PL
+
 end Optimization
 end Lean4ML
