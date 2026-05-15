@@ -41,7 +41,9 @@ def hessian (f : E → ℝ) (x : E) : E →L[ℝ] E :=
 def IsStrictLocalMin (f : E → ℝ) (x : E) : Prop :=
   ∃ U ∈ 𝓝 x, ∀ y ∈ U, y ≠ x → f x < f y
 
+/-- Globally Polyak--Łojasiewicz function: there exists a positive constant `μ` such that the PL inequality holds globally. -/
 def GloballyPL (f : E → ℝ) (μ : ℝ) (_hμ : 0 < μ) : Prop :=
+  let _ := _hμ
   ∀ x : E, ‖gradient f x‖^2 ≥ 2 * μ * (f x - iInf f)
 
 /-- Continuity of `t ↦ ⟪∇f(x + t p), p⟫` along a line. -/
