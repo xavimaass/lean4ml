@@ -271,6 +271,37 @@ theorem l_smooth_quadratic_upper_bound
   -- 5. Conclude
   linarith
 
+  theorem gradient_descent_one_step
+  (hC1 : ContDiff ℝ 1 f)
+  (hL : LSmoothOn f L s)
+  (hConv : Convex ℝ s)
+  (hx : x ∈ s)
+  (α : ℝ) (hα_nonneg : 0 ≤ α)
+  (hy_in : x - α • gradient f x ∈ s) :
+  f (x - α • gradient f x) ≤ f x - α * (1 - (L : ℝ) * α / 2) * ‖gradient f x‖ ^ 2 := by
+  -- set up y and the step vector p = y - x = -α • ∇f x
+  let y := x - α • gradient f x
+  let p := y - x
+  have hp : p = -α • gradient f x := by
+    dsimp [p, y]; simp
+  -- inner product term: ⟪∇f x, p⟫ = -α ‖∇f x‖²
+  have h_inner : ⟪gradient f x, p⟫ = -α * ‖gradient f x‖ ^ 2 := by
+    rw [hp]; simp [real_inner_smul_right]
+  -- norm squared term: ‖p‖² = α² ‖∇f x‖² (uses α ≥ 0 to remove absolute value)
+  have h_norm_sq : ‖p‖ ^ 2 = α ^ 2 * ‖gradient f x‖ ^ 2 := by
+    calc ‖p‖ ^ 2 = ‖-α • gradient f x‖ ^ 2 := by rw [hp]
+      _ = (‖-α‖ * ‖gradient f x‖) ^ 2 := by rw [norm_smul]
+      _ = (α * ‖gradient f x‖) ^ 2 := by rw [norm_neg, Real.norm_eq_abs, abs_of_nonneg hα_nonneg]
+      _ = α ^ 2 * ‖gradient f x‖ ^ 2 := by ring
+  -- apply the quadratic upper bound (descent lemma) and substitute
+  have h_quad := l_smooth_quadratic_upper_bound (f := f) (L := L) (s := s) hC1 hL hConv hx hy_in
+  calc
+    f y ≤ f x + ⟪gradient f x, p⟫ + ((L : ℝ) / 2) * ‖p‖ ^ 2 := h_quad
+    _ = f x + (-α * ‖gradient f x‖ ^ 2) + ((L : ℝ) / 2) * (α ^ 2 * ‖gradient f x‖ ^ 2) := by
+      rw [h_inner, h_norm_sq]
+    _ = f x - α * (1 - (L : ℝ) * α / 2) * ‖gradient f x‖ ^ 2 := by
+      ring
+
 end TaylorAndSmoothness
 
 section HessianVsSmoothness
