@@ -1,4 +1,8 @@
-import Mathlib
+import Mathlib.Analysis.InnerProductSpace.Basic
+import Mathlib.Analysis.Calculus.Gradient.Basic
+import Mathlib.Analysis.Calculus.FDeriv.Basic
+import Mathlib.Analysis.Calculus.ContDiff.Basic
+import Mathlib.Topology.Basic
 
 noncomputable section
 

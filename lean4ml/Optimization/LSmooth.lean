@@ -1,6 +1,8 @@
-import Mathlib
 import lean4ml.Optimization.Defs
 import lean4ml.Optimization.LineMap
+import Mathlib.MeasureTheory.Integral.IntervalIntegral.ContDiff
+import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+import Mathlib.Analysis.Calculus.MeanValue
 
 noncomputable section
 

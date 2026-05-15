@@ -1,5 +1,3 @@
-import Mathlib
-
 import lean4ml.Optimization.Defs
 import lean4ml.Optimization.NecessaryCondition
 
