@@ -32,11 +32,6 @@ lemma LSmoothOn_mono {f : E → ℝ} {L : NNReal} {S T : Set E}
     (hf : LSmoothOn f L S) (hST : T ⊆ S) : LSmoothOn f L T :=
   LipschitzOnWith.mono hf hST
 
-/-- Quadratic upper bound model used in descent lemmas. -/
-def QuadraticUpperBound (f : E → ℝ) (L : NNReal) (s : Set E) : Prop :=
-  ∀ x ∈ s, ∀ y ∈ s,
-    f y ≤ f x + ⟪gradient f x, y - x⟫ + ((L : ℝ) / 2) * ‖y - x‖ ^ (2 : ℕ)
-
 /-- Hessian of `f` represented as the Fréchet derivative of the gradient. -/
 def hessian (f : E → ℝ) (x : E) : E →L[ℝ] E :=
   fderiv ℝ (fun y => gradient f y) x

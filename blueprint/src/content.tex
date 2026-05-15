@@ -50,193 +50,164 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
   \[
     \|\nabla f(x) - \nabla f(y)\| \le L\|x-y\|,\quad \forall x,y\in s.
   \]
-  In Lean:
-  \texttt{LSmoothOn f L s~:= LipschitzOnWith L (fun x => gradient f x) s}.
+  %In Lean:
+  %\texttt{LSmoothOn f L s~:= LipschitzOnWith L (fun x => gradient f x) s}.
 \end{definition}
 
 \begin{definition}[Global $L$-smoothness]\label{def:l_smooth_fn}
   \lean{Lean4ML.Optimization.LSmoothfn}
   \leanok{}
   \uses{}
-  A function is globally $L$-smooth if $\nabla f$ is $L$-Lipschitz on all of $E$.
-  In Lean:
-  \texttt{LSmoothfn f L~:= LipschitzWith L (fun x => gradient f x)}.
+  A function is globally $L$-smooth if it is $L$-smooth on all of $E$.%$\nabla f$ is $L$-Lipschitz on all of $E$.
+  %In Lean:
+  %\texttt{LSmoothfn f L~:= LipschitzWith L (fun x => gradient f x)}.
 \end{definition}
 
-% \begin{lemma}[Global smoothness is smoothness on \texttt{Set.univ}]
-%   \label{lem:lSmooth_iff_lSmoothOn_univ}
-%   \lean{Lean4ML.Optimization.lSmooth_iff_lSmoothOn_univ}
-%   \leanok
-%   \uses{def:l_smooth_on,def:l_smooth_fn}
-%   In Lean:
-%   \[
-%     \texttt{LSmoothfn f L} \;\Longleftrightarrow\; \texttt{LSmoothOn f L Set.univ}.
-%   \]
-%   This is a \texttt{simp} lemma using \texttt{lipschitzOnWith\_univ}.
-% \end{lemma}
+\begin{lemma}[Global smoothness is smoothness on \texttt{Set.univ}]\label{lem:lSmooth_iff_lSmoothOn_univ}
+  \lean{Lean4ML.Optimization.lSmooth_iff_lSmoothOn_univ}
+  \leanok{}
+  \uses{def:l_smooth_on,def:l_smooth_fn}
+  In Lean:
+  \[
+    \texttt{LSmoothfn f L} \;\Longleftrightarrow\; \texttt{LSmoothOn f L Set.univ}.
+  \]
+  %This is a \texttt{simp} lemma using \texttt{lipschitzOnWith\_univ}.
+\end{lemma}
 
-% \begin{lemma}[Monotonicity under set inclusion]
-%   \label{lem:LSmoothOn_mono}
-%   \lean{Lean4ML.Optimization.LSmoothOn_mono}
-%   \leanok
-%   \uses{def:l_smooth_on}
-%   If $T \subseteq S$ and $f$ is $L$-smooth on $S$, then $f$ is $L$-smooth on $T$.
-% \end{lemma}
+\begin{lemma}[Monotonicity under set inclusion]\label{lem:LSmoothOn_mono}
+  \lean{Lean4ML.Optimization.LSmoothOn_mono}
+  \leanok{}
+  \uses{def:l_smooth_on}
+  If $T \subseteq S$ and $f$ is $L$-smooth on $S$, then $f$ is $L$-smooth on $T$.
+\end{lemma}
 
-% \begin{definition}[Quadratic upper bound model]
-%   \label{def:quadratic_upper_bound}
-%   \lean{Lean4ML.Optimization.QuadraticUpperBound}
-%   \leanok
-%   \uses{}
-%   The quadratic upper model on $s$ is:
-%   \[
-%     \forall x,y\in s,\quad
-%     f(y) \le f(x) + \langle \nabla f(x),y-x\rangle + \frac{L}{2}\|y-x\|^2.
-%   \]
-% \end{definition}
+\begin{definition}[Hessian]\label{def:hessian}
+  \lean{Lean4ML.Optimization.hessian}
+  \leanok{}
+  \uses{}
+  The Hessian is the Fr\'echet derivative of the gradient map:
+  \[
+    \nabla^2 f(x) := D(\nabla f)(x).
+  \]
+  %In Lean:\texttt{hessian f x := fderiv ℝ (fun y => gradient f y) x}.
+\end{definition}
 
-% \begin{definition}[Hessian]
-%   \label{def:hessian}
-%   \lean{Lean4ML.Optimization.hessian}
-%   \leanok
-%   \uses{}
-%   The Hessian is the Fr\'echet derivative of the gradient map:
-%   \[
-%     \nabla^2 f(x) := D(\nabla f)(x).
-%   \]
-%   In Lean:
-%   \texttt{hessian f x := fderiv ℝ (fun y => gradient f y) x}.
-% \end{definition}
+% --------------------------------------------------------------------
+% Core technical lemmas (Optimization/LSmooth.lean)
+% --------------------------------------------------------------------
+We introduce some convenient properties of derivatives to make our formalization simpler.
 
-% % --------------------------------------------------------------------
-% % Core technical lemmas (Optimization/LSmooth.lean)
-% % --------------------------------------------------------------------
+\begin{lemma}[Derivative operator-norm bound from Lipschitz]\label{lem:opNorm_fderiv_le_of_lipschitz}
+  \lean{Lean4ML.Optimization.opNorm_fderiv_le_of_lipschitz}
+  \leanok{}
+  \uses{}
+  If $g$ is $L$-Lipschitz on a set $s$ containing a neighborhood of $x$ and $g$ is differentiable at $x$,
+  then $\|Dg(x)\|\le L$.
+  (Lean: \texttt{HasFDerivAt.le\_of\_lipschitzOn}.)
+\end{lemma}
 
-% \begin{lemma}[Derivative operator-norm bound from Lipschitz]
-%   \label{lem:opNorm_fderiv_le_of_lipschitz}
-%   \lean{Lean4ML.Optimization.opNorm_fderiv_le_of_lipschitz}
-%   \leanok
-%   \uses{}
-%   If $g$ is $L$-Lipschitz on a set $s$ containing a neighborhood of $x$ and $g$ is differentiable at $x$,
-%   then $\|Dg(x)\|\le L$.
-%   (Lean: \texttt{HasFDerivAt.le\_of\_lipschitzOn}.)
-% \end{lemma}
+\begin{lemma}[Quadratic form controlled by operator norm]\label{lem:inner_le_opNorm_mul_norm_sq}
+  \lean{Lean4ML.Optimization.inner_le_opNorm_mul_norm_sq}
+  \leanok{}
+  \uses{}
+  For $A:E\to\mathcal{L}[\mathbb{R}]E$ and $p\in E$:
+  \[
+    \langle Ap,p\rangle \le \|A\|\,\|p\|^2.
+  \]
+  Lean uses \texttt{real\_inner\_le\_norm} and \texttt{ContinuousLinearMap.le\_opNorm}.
+\end{lemma}
 
-% \begin{lemma}[Quadratic form controlled by operator norm]
-%   \label{lem:inner_le_opNorm_mul_norm_sq}
-%   \lean{Lean4ML.Optimization.inner_le_opNorm_mul_norm_sq}
-%   \leanok
-%   \uses{}
-%   For $A:E\to\mathcal{L}[\mathbb{R}]E$ and $p\in E$:
-%   \[
-%     \langle Ap,p\rangle \le \|A\|\,\|p\|^2.
-%   \]
-%   Lean uses \texttt{real\_inner\_le\_norm} and \texttt{ContinuousLinearMap.le\_opNorm}.
-% \end{lemma}
+\begin{lemma}[HasGradient everywhere for $C^1$]\label{lem:hasGradientAt_of_contDiff_one}
+  \lean{Lean4ML.Optimization.hasGradientAt_of_contDiff_one}
+  \leanok{}
+  \uses{}
+  If \texttt{ContDiff ℝ 1 f}, then for every $z$ we have
+  \texttt{HasGradientAt f (gradient f z) z}.
+\end{lemma}
 
-% \begin{lemma}[HasGradient everywhere for $C^1$]
-%   \label{lem:hasGradientAt_of_contDiff_one}
-%   \lean{Lean4ML.Optimization.hasGradientAt_of_contDiff_one}
-%   \leanok
-%   \uses{}
-%   If \texttt{ContDiff ℝ 1 f}, then for every $z$ we have
-%   \texttt{HasGradientAt f (gradient f z) z}.
-% \end{lemma}
+\begin{lemma}[Norm Lipschitz bound for the gradient]\label{lem:norm_gradient_sub_le}
+  \lean{Lean4ML.Optimization.norm_gradient_sub_le}
+  \leanok{}
+  \uses{def:l_smooth_on}
+  If $f$ is $L$-smooth on $s$ and $x,y\in s$, then
+  $\|\nabla f(x)-\nabla f(y)\|\le L\|x-y\|$.
+  Lean rewrites the \texttt{edist} statement of \texttt{LipschitzOnWith}.
+\end{lemma}
 
-% \begin{lemma}[Norm Lipschitz bound for the gradient]
-%   \label{lem:norm_gradient_sub_le}
-%   \lean{Lean4ML.Optimization.norm_gradient_sub_le}
-%   \leanok
-%   \uses{def:l_smooth_on}
-%   If $f$ is $L$-smooth on $s$ and $x,y\in s$, then
-%   $\|\nabla f(x)-\nabla f(y)\|\le L\|x-y\|$.
-%   Lean rewrites the \texttt{edist} statement of \texttt{LipschitzOnWith}.
-% \end{lemma}
+\begin{lemma}[Continuity of $t \mapsto (Df(x+t p))p$]\label{lem:continuous_fderiv_line_apply}
+  \lean{Lean4ML.Optimization.continuous_fderiv_line_apply}
+  \leanok{}
+  \uses{}
+  If $f$ is $C^1$, then $t \mapsto (Df(x+t p))p$ is continuous.
+\end{lemma}
 
-% \begin{lemma}[Continuity of $t \mapsto (Df(x+t p))p$]
-%   \label{lem:continuous_fderiv_line_apply}
-%   \lean{Lean4ML.Optimization.continuous_fderiv_line_apply}
-%   \leanok
-%   \uses{}
-%   If $f$ is $C^1$, then $t \mapsto (Df(x+t p))p$ is continuous.
-% \end{lemma}
+\begin{lemma}[Continuity of $t \mapsto \langle \nabla f(x+t p),p\rangle$]\label{lem:continuous_inner_gradient_line}
+  \lean{Lean4ML.Optimization.continuous_inner_gradient_line}
+  \leanok{}
+  \uses{lem:hasGradientAt_of_contDiff_one,lem:continuous_fderiv_line_apply}
+  Lean rewrites $(Df(x+t p))p$ into $\langle \nabla f(x+t p),p\rangle$ using
+  \texttt{HasGradientAt.fderiv\_apply}.
+\end{lemma}
 
-% \begin{lemma}[Continuity of $t \mapsto \langle \nabla f(x+t p),p\rangle$]
-%   \label{lem:continuous_inner_gradient_line}
-%   \lean{Lean4ML.Optimization.continuous_inner_gradient_line}
-%   \leanok
-%   \uses{lem:hasGradientAt_of_contDiff_one,lem:continuous_fderiv_line_apply}
-%   Lean rewrites $(Df(x+t p))p$ into $\langle \nabla f(x+t p),p\rangle$ using
-%   \texttt{HasGradientAt.fderiv\_apply}.
-% \end{lemma}
+\begin{lemma}[Integrability of the line integrand]\label{lem:intervalIntegrable_inner_gradient_line}
+  \lean{Lean4ML.Optimization.intervalIntegrable_inner_gradient_line}
+  \leanok{}
+  \uses{lem:continuous_inner_gradient_line}
+  The integrand is \texttt{IntervalIntegrable} on any interval by continuity.
+\end{lemma}
 
-% \begin{lemma}[Integrability of the line integrand]
-%   \label{lem:intervalIntegrable_inner_gradient_line}
-%   \lean{Lean4ML.Optimization.intervalIntegrable_inner_gradient_line}
-%   \leanok
-%   \uses{lem:continuous_inner_gradient_line}
-%   The integrand is \texttt{IntervalIntegrable} on any interval by continuity.
-% \end{lemma}
+\begin{lemma}[Segment norm identity]\label{lem:norm_add_smul_sub_eq}
+  \lean{Lean4ML.Optimization.norm_add_smul_sub_eq}
+  \leanok{}
+  \uses{}
+  For $\gamma\ge 0$,
+  $\|(x+\gamma(y-x))-x\|=\gamma\|y-x\|$.
+\end{lemma}
 
-% \begin{lemma}[Segment norm identity]
-%   \label{lem:norm_add_smul_sub_eq}
-%   \lean{Lean4ML.Optimization.norm_add_smul_sub_eq}
-%   \leanok
-%   \uses{}
-%   For $\gamma\ge 0$,
-%   $\|(x+\gamma(y-x))-x\|=\gamma\|y-x\|$.
-% \end{lemma}
+\begin{lemma}[Line derivative]\label{lem:hasDerivAt_line_add_smul}
+  \lean{Lean4ML.Optimization.hasDerivAt_line_add_smul}
+  \leanok{}
+  \uses{}
+  The map $\tau\mapsto x+\tau\cdot p$ has derivative $p$ at all $\tau$.
+\end{lemma}
 
-% \begin{lemma}[Line derivative]
-%   \label{lem:hasDerivAt_line_add_smul}
-%   \lean{Lean4ML.Optimization.hasDerivAt_line_add_smul}
-%   \leanok
-%   \uses{}
-%   The map $\tau\mapsto x+\tau\cdot p$ has derivative $p$ at all $\tau$.
-% \end{lemma}
+\begin{lemma}[Chain rule along a line]\label{lem:hasDerivAt_comp_line}
+  \lean{Lean4ML.Optimization.hasDerivAt_comp_line}
+  \leanok{}
+  \uses{lem:hasDerivAt_line_add_smul}
+  If $f$ has Fr\'echet derivative at $x+t p$, then $\tau\mapsto f(x+\tau p)$ has derivative
+  $(Df(x+t p))p$ at $\tau=t$.
+\end{lemma}
 
-% \begin{lemma}[Chain rule along a line]
-%   \label{lem:hasDerivAt_comp_line}
-%   \lean{Lean4ML.Optimization.hasDerivAt_comp_line}
-%   \leanok
-%   \uses{lem:hasDerivAt_line_add_smul}
-%   If $f$ has Fr\'echet derivative at $x+t p$, then $\tau\mapsto f(x+\tau p)$ has derivative
-%   $(Df(x+t p))p$ at $\tau=t$.
-% \end{lemma}
+\begin{lemma}[Integral split-off constant term in an inner product]\label{lem:integral_inner_sub_const}
+  \lean{Lean4ML.Optimization.integral_inner_sub_const}
+  \leanok{}
+  \uses{}
+  Lean lemma used to rewrite
+  $\int \langle g(t)-c,w\rangle = \int \langle g(t),w\rangle - \int\langle c,w\rangle$.
+\end{lemma}
 
-% \begin{lemma}[Integral split-off constant term in an inner product]
-%   \label{lem:integral_inner_sub_const}
-%   \lean{Lean4ML.Optimization.integral_inner_sub_const}
-%   \leanok
-%   \uses{}
-%   Lean lemma used to rewrite
-%   $\int \langle g(t)-c,w\rangle = \int \langle g(t),w\rangle - \int\langle c,w\rangle$.
-% \end{lemma}
+\begin{lemma}[Monotonicity of interval integrals (continuous case)]\label{lem:intervalIntegral_mono_of_continuous}
+  \lean{Lean4ML.Optimization.intervalIntegral_mono_of_continuous}
+  \leanok{}
+  \uses{}
+  If $\varphi\le\psi$ on $[a,b]$ with $a\le b$ and both are continuous, then
+  $\int_a^b\varphi \le \int_a^b\psi$.
+\end{lemma}
 
-% \begin{lemma}[Monotonicity of interval integrals (continuous case)]
-%   \label{lem:intervalIntegral_mono_of_continuous}
-%   \lean{Lean4ML.Optimization.intervalIntegral_mono_of_continuous}
-%   \leanok
-%   \uses{}
-%   If $\varphi\le\psi$ on $[a,b]$ with $a\le b$ and both are continuous, then
-%   $\int_a^b\varphi \le \int_a^b\psi$.
-% \end{lemma}
+\begin{lemma}[Inner-product linearity rewrite]\label{lem:inner_sub_left_eq}
+  \lean{Lean4ML.Optimization.inner_sub_left_eq}
+  \leanok{}
+  \uses{}
+  $\langle u,w\rangle - \langle v,w\rangle = \langle u-v,w\rangle$.
+\end{lemma}
 
-% \begin{lemma}[Inner-product linearity rewrite]
-%   \label{lem:inner_sub_left_eq}
-%   \lean{Lean4ML.Optimization.inner_sub_left_eq}
-%   \leanok
-%   \uses{}
-%   $\langle u,w\rangle - \langle v,w\rangle = \langle u-v,w\rangle$.
-% \end{lemma}
-
-% \begin{lemma}[Convex segment stays in a convex set]
-%   \label{lem:Convex.add_smul_sub_mem_unit}
-%   \lean{Lean4ML.Optimization.Convex.add_smul_sub_mem_unit}
-%   \leanok
-%   \uses{}
-%   If $s$ is convex and $x,y\in s$, then $x+t(y-x)\in s$ for $t\in[0,1]$.
-% \end{lemma}
+\begin{lemma}[Convex segment stays in a convex set]\label{lem:Convex.add_smul_sub_mem_unit}
+  \lean{Lean4ML.Optimization.Convex.add_smul_sub_mem_unit}
+  \leanok{}
+  \uses{}
+  If $s$ is convex and $x,y\in s$, then $x+t(y-x)\in s$ for $t\in[0,1]$.
+\end{lemma}
 
 % % --------------------------------------------------------------------
 % % Taylor theorems
@@ -245,7 +216,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{theorem}[First-order Taylor formula along a line (vector-valued)]
 %   \label{thm:taylor_first_order_vector}
 %   \lean{Lean4ML.Optimization.taylor_first_order_vector}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:continuous_fderiv_line_apply,lem:hasDerivAt_comp_line}
 %   If $f:E\to F$ is $C^1$, then
 %   \[
@@ -257,7 +228,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{theorem}[First-order Taylor formula along a line]
 %   \label{thm:taylor_first_order}
 %   \lean{Lean4ML.Optimization.taylor_first_order}
-%   \leanok
+%   \leanok{}
 %   \uses{thm:taylor_first_order_vector,lem:hasGradientAt_of_contDiff_one}
 %   If $f\in C^1$, then
 %   \[
@@ -268,7 +239,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{theorem}[Second-order Taylor formula for the gradient]
 %   \label{thm:taylor_second_order_gradient}
 %   \lean{Lean4ML.Optimization.taylor_second_order_gradient}
-%   \leanok
+%   \leanok{}
 %   \uses{def:hessian,thm:taylor_first_order_vector}
 %   If $f\in C^2$, then
 %   \[
@@ -283,7 +254,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Pointwise Lipschitz-gradient bound]
 %   \label{lem:lipschitz_gradient_pointwise}
 %   \lean{Lean4ML.Optimization.lipschitz_gradient_pointwise}
-%   \leanok
+%   \leanok{}
 %   \uses{def:l_smooth_on,lem:norm_gradient_sub_le,lem:norm_add_smul_sub_eq}
 %   Under $L$-smoothness, for $\gamma\ge 0$ and the segment point in $s$,
 %   \[
@@ -295,7 +266,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Non-parametric corollary ($\gamma=1$)]
 %   \label{lem:inner_grad_diff_le_L}
 %   \lean{Lean4ML.Optimization.inner_grad_diff_le_L}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:lipschitz_gradient_pointwise}
 %   If $x,y\in s$ then
 %   $\langle \nabla f(y)-\nabla f(x),y-x\rangle\le L\|y-x\|^2$.
@@ -304,7 +275,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{theorem}[Quadratic upper bound from smoothness on a convex set]
 %   \label{thm:l_smooth_quadratic_upper_bound}
 %   \lean{Lean4ML.Optimization.l_smooth_quadratic_upper_bound}
-%   \leanok
+%   \leanok{}
 %   \uses{thm:taylor_first_order,lem:lipschitz_gradient_pointwise,lem:Convex.add_smul_sub_mem_unit,lem:integral_inner_sub_const,lem:intervalIntegral_mono_of_continuous}
 %   If $f\in C^1$, $f$ is $L$-smooth on convex $s$, and $x,y\in s$, then
 %   \[
@@ -313,7 +284,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \end{theorem}
 
 % \begin{proof}
-%   \leanok
+%   \leanok{}
 %   \uses{thm:taylor_first_order,lem:integral_inner_sub_const,lem:intervalIntegral_mono_of_continuous,lem:lipschitz_gradient_pointwise}
 %   This proof follows the Lean file \texttt{Optimization/LSmooth.lean} line-by-line.
 %   Let $p:=y-x$.
@@ -342,14 +313,14 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{theorem}[Hessian operator-norm bound $\Rightarrow$ smoothness on \texttt{univ}]
 %   \label{thm:hessianBoundImpliesLSmoothOnUniv}
 %   \lean{Lean4ML.Optimization.hessianBoundImpliesLSmoothOnUniv}
-%   \leanok
+%   \leanok{}
 %   \uses{def:l_smooth_on,def:hessian}
 %   If $\nabla f$ is differentiable everywhere with derivative $\nabla^2 f(x)$, and $\|\nabla^2 f(x)\|\le L$
 %   for all $x$, then $f$ is $L$-smooth on \texttt{Set.univ}.
 % \end{theorem}
 
 % \begin{proof}
-%   \leanok
+%   \leanok{}
 %   \uses{}
 %   Lean constructs \texttt{hDiff : ∀ x, DifferentiableAt ℝ (fun y => gradient f y) x} from the
 %   \texttt{HasFDerivAt} hypothesis, rewrites the bound as an \texttt{nnnorm} bound on
@@ -361,14 +332,14 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{theorem}[Smoothness on \texttt{univ} $\Rightarrow$ Hessian quadratic-form upper bound]
 %   \label{thm:lSmoothOnUnivImpliesHessianQuadraticFormBound}
 %   \lean{Lean4ML.Optimization.lSmoothOnUnivImpliesHessianQuadraticFormBound}
-%   \leanok
+%   \leanok{}
 %   \uses{def:l_smooth_on,def:hessian,lem:opNorm_fderiv_le_of_lipschitz,lem:inner_le_opNorm_mul_norm_sq}
 %   If $f$ is $L$-smooth on \texttt{Set.univ}, then
 %   $\langle \nabla^2 f(x)p,p\rangle \le L\|p\|^2$ for all $x,p$.
 % \end{theorem}
 
 % \begin{proof}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:opNorm_fderiv_le_of_lipschitz,lem:inner_le_opNorm_mul_norm_sq}
 %   Lean first obtains $\|\nabla^2 f(x)\|\le L$ from the Lipschitz hypothesis using
 %   Lemma~\ref{lem:opNorm_fderiv_le_of_lipschitz}, then applies
@@ -385,13 +356,13 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{theorem}[Local minimum $\Rightarrow$ gradient vanishes]
 %   \label{thm:local_min_gradient_zero}
 %   \lean{Lean4ML.Optimization.local_min_gradient_zero}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:hasGradientAt_of_contDiff_one}
 %   If $f\in C^1$ and $x$ is a local minimizer (Lean: \texttt{IsLocalMin f x}), then $\nabla f(x)=0$.
 % \end{theorem}
 
 % \begin{proof}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:hasGradientAt_of_contDiff_one}
 %   Lean:
 %   \begin{enumerate}
@@ -405,7 +376,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Hessian continuity along a line]
 %   \label{lem:continuous_hessian_line}
 %   \lean{Lean4ML.Optimization.continuous_hessian_line}
-%   \leanok
+%   \leanok{}
 %   \uses{def:hessian,lem:continuous_fderiv_line_apply}
 %   If $f\in C^2$, then $t\mapsto \nabla^2 f(x+t p)\,p$ is continuous.
 % \end{lemma}
@@ -413,7 +384,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Scaling of the Hessian quadratic form]
 %   \label{lem:hessian_inner_smul}
 %   \lean{Lean4ML.Optimization.hessian_inner_smul}
-%   \leanok
+%   \leanok{}
 %   \uses{def:hessian}
 %   $\langle \nabla^2 f(x)(\alpha p),\alpha p\rangle = \alpha^2\langle \nabla^2 f(x)p,p\rangle$.
 % \end{lemma}
@@ -421,7 +392,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Gradient as integral of Hessian along a line]
 %   \label{lem:gradient_line_eq_integral_hessian}
 %   \lean{Lean4ML.Optimization.gradient_line_eq_integral_hessian}
-%   \leanok
+%   \leanok{}
 %   \uses{thm:taylor_second_order_gradient,def:hessian}
 %   If $f\in C^2$ and $\nabla f(x)=0$, then
 %   $\nabla f(x+t p)=\int_0^t \nabla^2 f(x+s p)\,p\,ds$.
@@ -430,7 +401,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Exact second-order Taylor expansion (double integral)]
 %   \label{lem:taylor_second_order_exact}
 %   \lean{Lean4ML.Optimization.taylor_second_order_exact}
-%   \leanok
+%   \leanok{}
 %   \uses{thm:taylor_first_order,lem:gradient_line_eq_integral_hessian,def:hessian}
 %   If $f\in C^2$ and $\nabla f(x)=0$, then
 %   \[
@@ -441,13 +412,13 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{theorem}[Local minimum $\Rightarrow$ Hessian PSD]
 %   \label{thm:local_min_hessian_psd}
 %   \lean{Lean4ML.Optimization.local_min_hessian_psd}
-%   \leanok
+%   \leanok{}
 %   \uses{thm:local_min_gradient_zero,lem:taylor_second_order_exact,lem:continuous_hessian_line}
 %   If $f\in C^2$ and $x$ is a local minimizer, then $\langle \nabla^2 f(x)p,p\rangle\ge 0$ for all $p$.
 % \end{theorem}
 
 % \begin{proof}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:taylor_second_order_exact,lem:continuous_hessian_line}
 %   Lean proof strategy:
 %   \begin{enumerate}
@@ -470,7 +441,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{definition}[Strict local minimizer]
 %   \label{def:IsStrictLocalMin}
 %   \lean{Lean4ML.Optimization.IsStrictLocalMin}
-%   \leanok
+%   \leanok{}
 %   \uses{}
 %   Lean definition:
 %   $\exists U\in \mathcal{N}(x),\ \forall y\in U,\ y\neq x \to f(x)<f(y)$.
@@ -479,7 +450,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Taylor lower bound from uniform Hessian lower bound]
 %   \label{lem:taylor_lower_bound_from_hessian_lb}
 %   \lean{Lean4ML.Optimization.taylor_lower_bound_from_hessian_lb}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:taylor_second_order_exact,lem:continuous_hessian_line,lem:intervalIntegral_mono_of_continuous}
 %   Under a uniform bound $\varepsilon\|p\|^2 \le \langle \nabla^2 f(y)p,p\rangle$ on a ball around $x$
 %   and assuming $\nabla f(x)=0$, Lean proves
@@ -488,7 +459,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \end{lemma}
 
 % \begin{proof}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:taylor_second_order_exact,lem:intervalIntegral_mono_of_continuous}
 %   Lean proof:
 %   \begin{enumerate}
@@ -502,7 +473,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Coercivity from positive definiteness (finite-dimensional)]
 %   \label{lem:inner_coercive_of_pd}
 %   \lean{Lean4ML.Optimization.inner_coercive_of_pd}
-%   \leanok
+%   \leanok{}
 %   \uses{}
 %   In finite dimensions, a positive definite continuous linear map $H$ satisfies
 %   $\exists \varepsilon>0,\ \forall p,\ \varepsilon\|p\|^2 \le \langle Hp,p\rangle$.
@@ -512,7 +483,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Continuity of Hessian map]
 %   \label{lem:continuous_hessian}
 %   \lean{Lean4ML.Optimization.continuous_hessian}
-%   \leanok
+%   \leanok{}
 %   \uses{def:hessian}
 %   If $f\in C^2$, then $y\mapsto \nabla^2 f(y)$ is continuous (Lean: \texttt{continuous\_fderiv} applied to $\nabla f$).
 % \end{lemma}
@@ -520,14 +491,14 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Positive definite Hessian $\Rightarrow$ uniform lower bound on a ball]
 %   \label{lem:hessian_pd_local_lower_bound}
 %   \lean{Lean4ML.Optimization.hessian_pd_local_lower_bound}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:inner_coercive_of_pd,lem:continuous_hessian,lem:inner_le_opNorm_mul_norm_sq}
 %   In finite dimensions, if $\nabla^2 f(x)$ is positive definite, then there exist $\varepsilon>0$ and $\rho>0$ such that
 %   $\varepsilon\|p\|^2 \le \langle \nabla^2 f(y)p,p\rangle$ for all $y\in B(x,\rho)$ and all $p$.
 % \end{lemma}
 
 % \begin{proof}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:inner_coercive_of_pd,lem:continuous_hessian}
 %   Lean proof:
 %   \begin{enumerate}
@@ -541,13 +512,13 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{theorem}[Strict local minimizer from uniform Hessian lower bound]
 %   \label{thm:strict_local_min_of_gradient_zero_hessian_uniform_lb}
 %   \lean{Lean4ML.Optimization.strict_local_min_of_gradient_zero_hessian_uniform_lb}
-%   \leanok
+%   \leanok{}
 %   \uses{def:IsStrictLocalMin,lem:taylor_lower_bound_from_hessian_lb}
 %   If $f\in C^2$, $\nabla f(x)=0$, and the Hessian has a uniform positive lower bound on a ball around $x$, then $x$ is a strict local minimizer.
 % \end{theorem}
 
 % \begin{proof}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:taylor_lower_bound_from_hessian_lb}
 %   Lean sets $U=B(x,\rho)$. For $y\in U$ with $y\neq x$, set $p=y-x$ so that $y=x+p$ and $\|p\|<\rho$.
 %   Lemma~\ref{lem:taylor_lower_bound_from_hessian_lb} yields $(\varepsilon/2)\|p\|^2 \le f(y)-f(x)$.
@@ -557,13 +528,13 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{theorem}[Second-order sufficient condition (finite-dimensional)]
 %   \label{thm:second_order_sufficient_condition}
 %   \lean{Lean4ML.Optimization.second_order_sufficient_condition}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:hessian_pd_local_lower_bound,thm:strict_local_min_of_gradient_zero_hessian_uniform_lb}
 %   If $f\in C^2$, $\nabla f(x)=0$, and $\nabla^2 f(x)$ is positive definite, then $x$ is a strict local minimizer.
 % \end{theorem}
 
 % \begin{proof}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:hessian_pd_local_lower_bound,thm:strict_local_min_of_gradient_zero_hessian_uniform_lb}
 %   Lean applies Lemma~\ref{lem:hessian_pd_local_lower_bound} to obtain $\varepsilon,\rho$ and the uniform Hessian lower bound,
 %   then applies Theorem~\ref{thm:strict_local_min_of_gradient_zero_hessian_uniform_lb}.
@@ -586,7 +557,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{definition}[Gradient flow on a bounded interval]
 %   \label{def:GradientFlow}
 %   \lean{Lean4ML.Optimization.GradientFlow}
-%   \leanok
+%   \leanok{}
 %   \uses{}
 %   A \emph{bounded-time} gradient flow is a certificate that the ODE
 %   \[
@@ -604,7 +575,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Initial value]
 %   \label{lem:GradientFlow.trajectory_zero}
 %   \lean{Lean4ML.Optimization.GradientFlow.trajectory_zero}
-%   \leanok
+%   \leanok{}
 %   \uses{def:GradientFlow}
 %   For $\varphi : \texttt{GradientFlow f x₀ T}$, we have $\varphi(0)=x_0$.
 % \end{lemma}
@@ -612,7 +583,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Differentiability of the trajectory on $\lbrack 0,T\rbrack$]
 %   \label{lem:GradientFlow.differentiableAt}
 %   \lean{Lean4ML.Optimization.GradientFlow.differentiableAt}
-%   \leanok
+%   \leanok{}
 %   \uses{def:GradientFlow}
 %   For $t\in[0,T]$, the map $t\mapsto \varphi(t)$ is differentiable at $t$.
 %   (Lean: \texttt{DifferentiableAt ℝ φ.trajectory t}.)
@@ -621,7 +592,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Derivative equals negative gradient]
 %   \label{lem:GradientFlow.deriv_eq}
 %   \lean{Lean4ML.Optimization.GradientFlow.deriv_eq}
-%   \leanok
+%   \leanok{}
 %   \uses{def:GradientFlow,lem:GradientFlow.differentiableAt}
 %   For $t\in[0,T]$,
 %   \[
@@ -637,7 +608,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Energy derivative along the flow]
 %   \label{lem:GradientFlow.hasDerivAt_energy}
 %   \lean{Lean4ML.Optimization.GradientFlow.hasDerivAt_energy}
-%   \leanok
+%   \leanok{}
 %   \uses{def:GradientFlow}
 %   If $f\in C^1$ (Lean: \texttt{ContDiff ℝ 1 f}) and $\varphi$ is a gradient flow, then for $t\in[0,T]$
 %   \[
@@ -655,7 +626,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Energy is non-increasing]
 %   \label{lem:GradientFlow.energy_antitone}
 %   \lean{Lean4ML.Optimization.GradientFlow.energy_antitone}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:GradientFlow.hasDerivAt_energy}
 %   If $0\le r\le s\le T$, then
 %   \[
@@ -677,7 +648,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{definition}[Piecewise trajectory]
 %   \label{def:piecewiseTrajectory}
 %   \lean{Lean4ML.Optimization.piecewiseTrajectory}
-%   \leanok
+%   \leanok{}
 %   \uses{}
 %   The piecewise trajectory that follows $\varphi_1$ up to time $T$ and then $\varphi_2$ (shifted) is
 %   \[
@@ -693,7 +664,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{definition}[Extend (chain) two gradient flows]
 %   \label{def:gradientFlow_extend}
 %   \lean{Lean4ML.Optimization.gradientFlow_extend}
-%   \leanok
+%   \leanok{}
 %   \uses{def:GradientFlow,def:piecewiseTrajectory}
 %   Given a flow $\varphi$ on $[0,T]$ and a flow $\psi$ on $[0,\delta]$ starting at $\varphi(T)$,
 %   Lean constructs a flow on $[0,T+\delta]$ by the piecewise trajectory.
@@ -704,7 +675,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{definition}[Restrict a flow to a smaller time interval]
 %   \label{def:gradientFlow_restrict}
 %   \lean{Lean4ML.Optimization.gradientFlow_restrict}
-%   \leanok
+%   \leanok{}
 %   \uses{def:GradientFlow}
 %   A flow on $[0,S]$ restricts to one on $[0,T]$ for $T\le S$ by reusing the same trajectory
 %   and weakening the domain proof.
@@ -717,7 +688,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Gradient map is continuous]
 %   \label{lem:gradient_continuous}
 %   \lean{Lean4ML.Optimization.gradient_continuous}
-%   \leanok
+%   \leanok{}
 %   \uses{}
 %   If $f\in C^1$, then $\nabla f$ is continuous.
 %   (Lean: proof is \texttt{unfold gradient; fun\_prop}.)
@@ -726,7 +697,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Norm bound from a Lipschitz gradient]
 %   \label{lem:gradient_norm_bound}
 %   \lean{Lean4ML.Optimization.gradient_norm_bound}
-%   \leanok
+%   \leanok{}
 %   \uses{}
 %   If $\nabla f$ is $L$-Lipschitz, then
 %   \[
@@ -739,7 +710,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{theorem}[Local gradient flow existence]
 %   \label{thm:gradientFlow_local_existence}
 %   \lean{Lean4ML.Optimization.gradientFlow_local_existence}
-%   \leanok
+%   \leanok{}
 %   \uses{def:GradientFlow,def:l_smooth_fn,lem:gradient_norm_bound}
 %   If $f\in C^1$ and $\nabla f$ is globally $L$-Lipschitz, then for any $x_0$ there exists $\delta>0$
 %   and a gradient flow on $[0,\delta]$ starting at $x_0$.
@@ -751,7 +722,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{definition}[Concrete local flow constructor]
 %   \label{def:mk_local_flow}
 %   \lean{Lean4ML.Optimization.mk_local_flow}
-%   \leanok
+%   \leanok{}
 %   \uses{thm:gradientFlow_local_existence}
 %   Lean also builds an explicit flow on the explicit time step
 %   \[
@@ -763,7 +734,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{theorem}[Uniform local existence]
 %   \label{thm:gradientFlow_local_existence_uniform}
 %   \lean{Lean4ML.Optimization.gradientFlow_local_existence_uniform}
-%   \leanok
+%   \leanok{}
 %   \uses{def:mk_local_flow}
 %   There exists $\delta>0$ (in fact $\delta=1/(4L+4)$) such that for \emph{every} $x_0$
 %   there is a gradient flow on $[0,\delta]$ starting from $x_0$.
@@ -772,7 +743,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Iterated extension]
 %   \label{lem:gradientFlow_iterate}
 %   \lean{Lean4ML.Optimization.gradientFlow_iterate}
-%   \leanok
+%   \leanok{}
 %   \uses{def:gradientFlow_extend,def:gradientFlow_restrict}
 %   From a hypothesis \texttt{∀ x₀, Nonempty (GradientFlow f x₀ δ)} and $\delta>0$,
 %   Lean builds a flow on $[0,n\delta]$ by induction on $n$.
@@ -785,7 +756,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{theorem}[Gradient flow existence on $\lbrack 0,T\rbrack$]
 %   \label{thm:gradientFlow_existence}
 %   \lean{Lean4ML.Optimization.gradientFlow_existence}
-%   \leanok
+%   \leanok{}
 %   \uses{thm:gradientFlow_local_existence_uniform,lem:gradientFlow_iterate,def:gradientFlow_restrict}
 %   If $f\in C^1$, $\nabla f$ is globally $L$-Lipschitz, and $T>0$, then for any $x_0$
 %   there exists a gradient flow on $[0,T]$ starting at $x_0$.
@@ -793,7 +764,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \end{theorem}
 
 % \begin{proof}
-%   \leanok
+%   \leanok{}
 %   \uses{thm:gradientFlow_local_existence_uniform,lem:gradientFlow_iterate,def:gradientFlow_restrict}
 %   Lean proof steps:
 %   \begin{enumerate}
@@ -813,7 +784,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{definition}[Global gradient flow]
 %   \label{def:GradientFlowGlobal}
 %   \lean{Lean4ML.Optimization.GradientFlowGlobal}
-%   \leanok
+%   \leanok{}
 %   \uses{}
 %   A \texttt{GradientFlowGlobal f x₀} is a trajectory defined for all $t\in\mathbb{R}$
 %   with the ODE holding for all $t\ge 0$:
@@ -823,7 +794,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{definition}[Restriction of a global flow]
 %   \label{def:GradientFlowGlobal.restrict}
 %   \lean{Lean4ML.Optimization.GradientFlowGlobal.restrict}
-%   \leanok
+%   \leanok{}
 %   \uses{def:GradientFlowGlobal,def:GradientFlow}
 %   A global flow restricts to a bounded flow on $[0,T]$ by reusing the same trajectory.
 % \end{definition}
@@ -831,7 +802,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Uniqueness of bounded flows]
 %   \label{lem:gradientFlow_unique}
 %   \lean{Lean4ML.Optimization.gradientFlow_unique}
-%   \leanok
+%   \leanok{}
 %   \uses{def:GradientFlow,def:l_smooth_fn}
 %   If $\nabla f$ is $L$-Lipschitz and $T\ge 0$, then two flows with the same initial condition
 %   coincide on $[0,T]$ (Lean: \texttt{Set.EqOn ... (Icc 0 T)}).
@@ -841,7 +812,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Consistency at overlaps]
 %   \label{lem:flows_consistent_at}
 %   \lean{Lean4ML.Optimization.flows_consistent_at}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:gradientFlow_unique,def:gradientFlow_restrict}
 %   For a family of flows $\varphi(n)$ on $[0,n+1]$, any two indices agree at any time in both domains.
 %   Lean proves this by restricting the larger interval and applying uniqueness.
@@ -850,7 +821,7 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{lemma}[Local agreement of the glued global trajectory]
 %   \label{lem:global_traj_eventuallyEq}
 %   \lean{Lean4ML.Optimization.global_traj_eventuallyEq}
-%   \leanok
+%   \leanok{}
 %   \uses{lem:flows_consistent_at}
 %   Define $x(t):=(\varphi(\lceil t\rceil_+)).trajectory(t)$. For each fixed $t\ge 0$,
 %   Lean shows $x$ is \emph{eventually equal} near $t$ to $(\varphi(\lceil t\rceil_+)).trajectory$,
@@ -861,14 +832,14 @@ $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
 % \begin{theorem}[Global gradient flow existence for all $t\ge 0$]
 %   \label{thm:gradientFlowGlobal_existence}
 %   \lean{Lean4ML.Optimization.gradientFlowGlobal_existence}
-%   \leanok
+%   \leanok{}
 %   \uses{def:GradientFlowGlobal,thm:gradientFlow_existence,lem:global_traj_eventuallyEq}
 %   If $f\in C^1$ and $\nabla f$ is globally $L$-Lipschitz, then for any $x_0$
 %   there exists a global gradient flow defined for all $t\ge 0$.
 % \end{theorem}
 
 % \begin{proof}
-%   \leanok
+%   \leanok{}
 %   \uses{thm:gradientFlow_existence,lem:global_traj_eventuallyEq}
 %   Lean proof:
 %   \begin{enumerate}
