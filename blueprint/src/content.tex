@@ -1029,3 +1029,296 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
   The right-hand side is an exponentially decaying term, hence tends to $0$ as $t\to\infty$.
   By squeezing, the energy gap converges to $0$, which is equivalent to $f(\varphi(t))\to \inf f$.
 \end{proof}
+
+% ====================================================================
+% Convexity Results  (Optimization/Convex.lean)
+% ====================================================================
+
+\section*{Convexity}\label{sec:convexity}
+
+Throughout this section, $E$ is a real normed space, $f : E \to \mathbb{R}$,
+$s \subseteq E$ is a convex set, and $x, y \in E$.
+
+% --------------------------------------------------------------------
+% Definition of convexity
+% --------------------------------------------------------------------
+
+\begin{definition}[Convex function on a set]\label{def:convex_fn}
+  \lean{ConvexOn}
+  \leanok{}
+  \uses{}
+  We say that $f$ is \emph{convex on $s$} if $s$ is a convex set and for all $x, y \in s$
+  and $a, b \ge 0$ with $a + b = 1$:
+  \[
+    f(a x + b y) \;\le\; a\,f(x) + b\,f(y).
+  \]
+\end{definition}
+
+% --------------------------------------------------------------------
+% Theorem 2.6
+% --------------------------------------------------------------------
+
+\begin{theorem}[Local minimizer on convex set is global]\label{thm:local_min_is_global_convex}
+  \lean{IsMinOn.of_isLocalMinOn_of_convexOn}
+  \leanok{}
+  \uses{}
+  If $f$ is convex on $s$ and $x \in s$ is a local minimizer of $f$ restricted to $s$,
+  then $x$ is a global minimizer of $f$ on $s$.
+\end{theorem}
+
+\begin{theorem}[Set of minimizers is convex]\label{thm:minimizers_set_convex}
+  \lean{Lean4ML.Optimization.ConvexOn.convex_minimizers_mathlib}
+  \leanok{}
+  \uses{}
+  If $f$ is convex on $s$, then the set of minimizers
+  \[
+    \mathcal{M} := \{x \in s \mid \forall y \in s,\ f(x) \le f(y)\}
+  \]
+  is convex.
+\end{theorem}
+
+\begin{proof}
+  Let $x, y \in \mathcal{M}$ and $a, b \ge 0$ with $a + b = 1$. Set $z := ax + by$.
+  Since $s$ is convex, $z \in s$. For any $w \in s$, convexity of $f$ gives
+  \[
+    f(z) \le a\,f(x) + b\,f(y).
+  \]
+  Since $x$ and $y$ are both minimizers, $f(x) \le f(w)$ and $f(y) \le f(w)$, so
+  \[
+    f(z) \le a\,f(x) + b\,f(y) \le a\,f(w) + b\,f(w) = (a+b)\,f(w) = f(w).
+  \]
+  Hence $z \in \mathcal{M}$. If $\mathcal{M}$ is empty, it is trivially convex.
+\end{proof}
+
+% --------------------------------------------------------------------
+% First-order characterization
+% --------------------------------------------------------------------
+
+\begin{lemma}[First-order characterization of convexity]\label{lem:convex_first_order_char}
+  \lean{Lean4ML.Optimization.ConvexOn.add_fderiv_le}
+  \leanok{}
+  \uses{}
+  If $f$ is convex on $s$ and Fr\'echet differentiable at $x \in s$, then for all $y \in s$:
+  \[
+    f(x) + Df(x)(y - x) \le f(y).
+  \]
+\end{lemma}
+
+\begin{proof}
+  \textbf{Step 1: Convexity upper bound along the segment.}
+  For $\alpha \in [0,1]$, the convexity of $f$ gives
+  \[
+    f(x + \alpha(y-x)) = f((1-\alpha)x + \alpha y) \le (1-\alpha)f(x) + \alpha f(y).
+  \]
+
+  \textbf{Step 2: Rearranging into a difference quotient.}
+  For $\alpha \in (0,1]$, subtracting $f(x)$ and dividing by $\alpha > 0$ yields
+  \[
+    \frac{f(x + \alpha(y-x)) - f(x)}{\alpha} \le f(y) - f(x).
+  \]
+
+  \textbf{Step 3: Taking the limit.}
+  By the chain rule, the map $\alpha \mapsto f(x + \alpha(y-x))$ has derivative $Df(x)(y-x)$ at $\alpha = 0$.
+  Therefore the difference quotients on the left converge to $Df(x)(y-x)$ as $\alpha \to 0^+$.
+  Passing the limit through the inequality gives
+  \[
+    Df(x)(y-x) \le f(y) - f(x),
+  \]
+  which rearranges to $f(x) + Df(x)(y-x) \le f(y)$.
+\end{proof}
+
+% --------------------------------------------------------------------
+% Theorem 2.7
+% --------------------------------------------------------------------
+
+\begin{theorem}[Zero derivative implies global minimizer]\label{thm:zero_deriv_implies_global_min}
+  \lean{Lean4ML.Optimization.ConvexOn.isMinOn_of_hasDerivAt_eq_zero}
+  \leanok{}
+  \uses{lem:convex_first_order_char}
+  If $f$ is convex on $s$, $x \in s$, and $Df(x) = 0$, then $x$ is a global minimizer of $f$ on $s$.
+\end{theorem}
+
+\begin{proof}
+  Apply Lemma~\ref{lem:convex_first_order_char} with the given $x$ and any $y \in s$:
+  \[
+    f(x) + Df(x)(y-x) \le f(y).
+  \]
+  Since $Df(x) = 0$, the second term vanishes, giving $f(x) \le f(y)$ for all $y \in s$.
+\end{proof}
+
+\section*{Strong Convexity}\label{sec:strong_convexity}
+
+Throughout this section, $E$ is a real Hilbert space, $f : E \to \mathbb{R}$,
+$s \subseteq E$ is a convex set, $m > 0$, and $x, y \in E$.
+
+% --------------------------------------------------------------------
+% Definition of strong convexity
+% --------------------------------------------------------------------
+
+\begin{definition}[Strongly convex function on a set]\label{def:strong_convex_fn}
+  \lean{StrongConvexOn}
+  \leanok{}
+  \uses{def:convex_fn}
+  We say that $f$ is \emph{strongly convex on $s$ with modulus $m > 0$} if $s$ is a convex set
+  and for all $x, y \in s$ and $a, b \ge 0$ with $a + b = 1$:
+  \[
+    f(a x + b y) \;\le\; a\,f(x) + b\,f(y) - \tfrac{m}{2}\,ab\,\|x - y\|^2.
+  \]
+  In particular, taking $a = 1-\alpha$, $b = \alpha$ recovers the modulated convexity inequality
+  \[
+    f\bigl((1-\alpha)x + \alpha y\bigr) \;\le\; (1-\alpha)f(x) + \alpha f(y) - \tfrac{m}{2}\alpha(1-\alpha)\|x-y\|^2.
+  \]
+\end{definition}
+
+% --------------------------------------------------------------------
+% Reduction to convexity
+% --------------------------------------------------------------------
+
+\begin{lemma}[Strong convexity reduces to convexity]\label{lem:strongConvexOn_iff_convex}
+  \lean{strongConvexOn_iff_convex}
+  \leanok{}
+  \uses{}
+  $f$ is strongly convex on $s$ with modulus $m$ if and only if
+  $x \mapsto f(x) - \dfrac{m}{2}\|x\|^2$ is convex on $s$:
+  \[
+    \mathrm{StrongConvexOn}\ s\ m\ f
+    \;\iff\;
+    \mathrm{ConvexOn}\ s\ \Bigl(x \mapsto f(x) - \tfrac{m}{2}\|x\|^2\Bigr).
+  \]
+\end{lemma}
+
+% --------------------------------------------------------------------
+% First-order lower bound for strongly convex functions
+% --------------------------------------------------------------------
+
+\begin{lemma}[First-order lower bound for strongly convex functions]\label{lem:strong_convex_lower_bound}
+  \lean{Lean4ML.Optimization.StronglyConvexOn.add_fderiv_le}
+  \leanok{}
+  \uses{lem:strongConvexOn_iff_convex,lem:convex_first_order_char}
+  If $f$ is strongly convex on $s$ with modulus $m > 0$ and Fr\'echet differentiable at $x \in s$,
+  then for all $y \in s$:
+  \[
+    f(y) \ge f(x) + Df(x)(y - x) + \frac{m}{2}\|y - x\|^2.
+  \]
+\end{lemma}
+
+\begin{proof}
+  Define $g : E \to \mathbb{R}$ by $g(z) = f(z) - \frac{m}{2}\|z\|^2$.
+  By Lemma~\ref{lem:strongConvexOn_iff_convex}, $g$ is convex on $s$.
+  Since $f$ is Fr\'echet differentiable at $x$ and $z \mapsto \frac{m}{2}\|z\|^2$ is
+  differentiable everywhere, $g$ is Fr\'echet differentiable at $x$ with
+  \[
+    Dg(x) = Df(x) - D\!\left(\tfrac{m}{2}\|\cdot\|^2\right)(x).
+  \]
+  A direct computation gives $D\!\left(\frac{m}{2}\|\cdot\|^2\right)(x)(v) = m\langle x, v\rangle$
+  for all $v$.
+  Apply Lemma~\ref{lem:convex_first_order_char} to the convex function $g$:
+  \[
+    g(x) + Dg(x)(y - x) \le g(y).
+  \]
+  Substituting $g(z) = f(z) - \frac{m}{2}\|z\|^2$ and $Dg(x)(v) = Df(x)(v) - m\langle x, v\rangle$:
+  \[
+    f(x) - \tfrac{m}{2}\|x\|^2
+    + Df(x)(y-x) - m\langle x,\, y-x\rangle
+    \;\le\;
+    f(y) - \tfrac{m}{2}\|y\|^2.
+  \]
+  Rearranging, it remains to show that
+  \[
+    -\tfrac{m}{2}\|x\|^2 - m\langle x,\, y-x\rangle + \tfrac{m}{2}\|y\|^2
+    \;=\; \tfrac{m}{2}\|y - x\|^2.
+  \]
+  Indeed, expanding $\langle x, y-x\rangle = \langle x,y\rangle - \|x\|^2$:
+  \begin{align*}
+    -\tfrac{m}{2}\|x\|^2 - m\langle x,y\rangle + m\|x\|^2 + \tfrac{m}{2}\|y\|^2
+    &= \tfrac{m}{2}\|x\|^2 - m\langle x,y\rangle + \tfrac{m}{2}\|y\|^2 \\
+    &= \tfrac{m}{2}\bigl(\|x\|^2 - 2\langle x,y\rangle + \|y\|^2\bigr)
+     = \tfrac{m}{2}\|y - x\|^2.
+  \end{align*}
+  Therefore $f(x) + Df(x)(y-x) + \frac{m}{2}\|y-x\|^2 \le f(y)$.
+\end{proof}
+
+% --------------------------------------------------------------------
+% Theorem 2.8
+% --------------------------------------------------------------------
+
+\begin{theorem}[Unique global minimizer under strong convexity]\label{thm:unique_minimizer_strong_convex}
+  \lean{Lean4ML.Optimization.StrongConvexOn.isMinOn_of_fderiv_eq_zero}
+  \uses{lem:strong_convex_lower_bound}
+Suppose that $f$ is continuously differentiable and strongly convex. Then if $\nabla f(x^*) = 0$, then $x^*$ is the unique global minimizer of $f$.
+\end{theorem}
+
+\begin{proof}
+Apply Lemma~\ref{lem:strong_convex_lower_bound} with $x = x^*$ and any $y$ in the domain:
+$$f(y) \geq f(x^*) + Df(x^*)(y-x^*) + \frac{m}{2}\|y-x^*\|^2.$$
+Since $x^*$ is a stationary point, $Df(x^*) = 0$, so:
+$$f(y) \geq f(x^*) + \frac{m}{2}\|y-x^*\|^2.$$
+By the definition of strong convexity, the modulus $m > 0$. Furthermore, for any $y \neq x^*$, the squared norm $\|y-x^*\|^2 > 0$.
+Therefore, for all $y \neq x^*$, the term $\frac{m}{2}\|y-x^*\|^2$ is strictly positive, which implies:
+$$f(y) > f(x^*)$$
+This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
+\end{proof}
+
+% --------------------------------------------------------------------
+% Lemma 2.9
+% --------------------------------------------------------------------
+
+\begin{lemma}[Hessian characterization of strong convexity]\label{lem:hessian_char_strong_convex}
+  \lean{Lean4ML.Optimization.strongConvexOn_iff_hessian_lb}
+  \uses{lem:strong_convex_lower_bound,thm:taylor_first_order,thm:taylor_second_order_gradient}
+Suppose that $f$ is twice continuously differentiable. Then $f$ has modulus of convexity $m$ if and only if $\nabla^2 f(x) \succeq mI$ for all $x$.
+\end{lemma}
+
+\begin{proof}
+  \textbf{($\Rightarrow$) Strong convexity $\Rightarrow$ Hessian bound.}
+  Fix $x$ and $u \ne 0$, and let $\alpha > 0$.
+  By Lemma~\ref{lem:strong_convex_lower_bound} applied at $y = x + \alpha u$:
+  \[
+    f(x + \alpha u) \;\ge\; f(x) + \alpha\, Df(x)(u) + \tfrac{m}{2}\alpha^2\|u\|^2.
+  \]
+  Rearranging and dividing by $\alpha^2/2$:
+  \[
+    \frac{f(x+\alpha u) - f(x) - \alpha\,Df(x)(u)}{\alpha^2/2} \;\ge\; m\|u\|^2.
+  \]
+  As $\alpha \to 0$ the left side converges to $\langle \nabla^2 f(x)u, u\rangle$ (second-order differentiability of $f$), giving $\langle \nabla^2 f(x)u, u\rangle \ge m\|u\|^2$, i.e.\ $\nabla^2 f(x) \succeq mI$.
+
+  \textbf{($\Leftarrow$) Hessian bound $\Rightarrow$ first-order lower bound.}
+  Assume $\nabla^2 f(x) \succeq mI$ everywhere. Fix $x, y$ and let $p = y - x$.
+  By Theorem~\ref{thm:taylor_second_order_gradient}:
+  \[
+    \nabla f(x + tp) - \nabla f(x) = \int_0^1 \nabla^2 f(x + stp)\,(tp)\,ds,
+  \]
+  so
+  \[
+    \langle \nabla f(x+tp),\, p\rangle
+    = \langle \nabla f(x), p\rangle + t\int_0^1 \langle \nabla^2 f(x+stp)\,p,\,p\rangle\,ds
+    \;\ge\; \langle \nabla f(x),p\rangle + tm\|p\|^2.
+  \]
+  Integrating over $t \in [0,1]$ using Theorem~\ref{thm:taylor_first_order}:
+  \[
+    f(y) - f(x)
+    = \int_0^1 \langle \nabla f(x+tp),p\rangle\,dt
+    \;\ge\; \langle \nabla f(x),p\rangle + m\|p\|^2\!\int_0^1 t\,dt
+    = \langle \nabla f(x),y-x\rangle + \tfrac{m}{2}\|y-x\|^2,
+  \]
+  which is the first-order form of strong convexity.
+\end{proof}
+
+% --------------------------------------------------------------------
+% Corollary 2.10
+% --------------------------------------------------------------------
+
+\begin{corollary}[Hessian sandwich characterization of $L$-smooth convex functions]\label{cor:hessian_sandwich}
+  \lean{Lean4ML.Optimization.convexOn_lSmoothOn_iff_hessian_sandwich}
+  \uses{thm:hessianBoundImpliesLSmoothOnUniv,thm:lSmoothOnUnivImpliesHessianQuadraticFormBound}
+Suppose $f$ is twice continuously differentiable and convex. Then $0 \preceq \nabla^2 f(x) \preceq LI$ if and only if $f$ is $L$-smooth.
+\end{corollary}
+
+\begin{proof}
+  \textbf{($\Rightarrow$):} The bound $\nabla^2 f(x) \preceq LI$ implies $\|\nabla^2 f(x)\| \le L$.
+  Apply Theorem~\ref{thm:hessianBoundImpliesLSmoothOnUniv} to conclude $f$ is $L$-smooth.
+
+  \textbf{($\Leftarrow$):} Convexity of $f$ gives $0 \preceq \nabla^2 f(x)$ directly.
+  By Theorem~\ref{thm:lSmoothOnUnivImpliesHessianQuadraticFormBound}, $L$-smoothness gives
+  $\langle \nabla^2 f(x)p,p\rangle \le L\|p\|^2$ for all $x,p$, which is $\nabla^2 f(x) \preceq LI$.
+\end{proof}
