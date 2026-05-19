@@ -51,13 +51,34 @@ lemma StronglyConvexOn.add_fderiv_le
     ring
 
 -- theorem 2.8: unique global minimizer
+omit [CompleteSpace E] in
 theorem StrongConvexOn.isMinOn_of_fderiv_eq_zero
     (h_conv : StrongConvexOn s m f)
     (h_diff : DifferentiableAt ℝ f x)
     (h_stat : fderiv ℝ f x = 0)
-    (hm : 0 < m) :
-    IsMinOn f s x ∧ ∀ y : E, IsMinOn f s y → y = x := by
-  sorry
+    (hm : 0 < m) (hx : x ∈ s) :
+    IsMinOn f s x ∧ ∀ y ∈ s, IsMinOn f s y → y = x := by
+  have part1 : IsMinOn f s x := by
+    intro z hz;
+    have := StronglyConvexOn.add_fderiv_le h_conv h_diff hx hz;
+    simp_all;
+    exact le_trans ( le_add_of_nonneg_right ( by positivity ) ) this;
+  refine' ⟨ part1, fun y hy hy' => _ ⟩
+  have h_eq : f x = f y := by
+    exact le_antisymm ( part1 hy ) ( hy' hx )
+  have h_dist : ‖x - y‖ = 0 := by
+    have := h_conv.2 hx hy ( by positivity ) ( by positivity ) ( show ( 1 / 2 : ℝ ) + ( 1 / 2 ) = 1 by norm_num );
+    simp_all +decide [ StrongConvexOn ];
+    exact Classical.not_not.1 fun h => absurd
+      (
+        part1 (show ( 1 / 2 : ℝ ) • x + ( 1 / 2 : ℝ ) • y ∈ s from h_conv.1 hx hy ( by norm_num ) ( by norm_num ) ( by norm_num ))
+      )
+      (
+        by norm_num; nlinarith [ show 0 < m * ‖x - y‖ ^ 2 by exact mul_pos hm ( sq_pos_of_pos ( norm_pos_iff.mpr h ) ) ]
+      )
+  have h_eq' : x = y := by
+    exact sub_eq_zero.mp ( norm_eq_zero.mp h_dist )
+  exact h_eq'.symm
 
 -- lemma 2.9: hessian characterization of strong convexity
 lemma strongConvexOn_iff_hessian_lb
