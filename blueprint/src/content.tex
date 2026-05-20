@@ -15,7 +15,7 @@
 % Taylor and Smoothness  (Optimization/Defs.lean, Optimization/LineMap.lean, Optimization/LSmooth.lean)
 % ====================================================================
 
-\section*{General Definitions and Basic Properties}\label{sec:GeneralDefinitions}
+\section{General Definitions and Basic Properties}\label{sec:GeneralDefinitions}
 
 Throughout this section, $E$ is a real Hilbert space, $f : E \to \mathbb{R}$,
 $s \subseteq E$, and $L \in \mathbb{R}_{\ge 0}$ (Lean: \texttt{NNReal}).
@@ -25,7 +25,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 % --------------------------------------------------------------------
 % Definitions (Optimization/Defs.lean)
 % --------------------------------------------------------------------
-\subsection*{L-smoothness and others}
+\subsection{L-smoothness and others}
 \begin{definition}[$L$-smoothness on a set]\label{def:l_smooth_on}
   \lean{Lean4ML.Optimization.LSmoothOn}
   \leanok{}
@@ -92,7 +92,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 % --------------------------------------------------------------------
 % Line-map and continuity lemmas (Optimization/LineMap.lean)
 % --------------------------------------------------------------------
-\subsection*{Line Map and its properties}
+\subsection{Line Map and its properties}
 \begin{definition}[Line map]\label{def:lineMap}
   \lean{Lean4ML.Optimization.lineMap}
   \leanok{}
@@ -162,7 +162,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 % --------------------------------------------------------------------
 % Core technical lemmas (Optimization/LSmooth.lean)
 % --------------------------------------------------------------------
-\subsection*{Other intermediary results}
+\subsection{Other intermediary results}
 \begin{lemma}[Derivative operator-norm bound from Lipschitz]\label{lem:opNorm_fderiv_le_of_lipschitz}
   \lean{Lean4ML.Optimization.opNorm_fderiv_le_of_lipschitz}
   \leanok{}
@@ -236,7 +236,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   $\langle u,w\rangle - \langle v,w\rangle = \langle u-v,w\rangle$.
 \end{lemma}
 
-\section*{Taylor's Theorem}\label{sec:TaylorsTheorem}
+\section{Taylor's Theorem}\label{sec:TaylorsTheorem}
 % --------------------------------------------------------------------
 % Taylor theorems (Optimization/LSmooth.lean)
 % --------------------------------------------------------------------
@@ -426,7 +426,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 % Hessian vs Smoothness  (Optimization/LSmooth.lean, section HessianVsSmoothness)
 % ====================================================================
 
-\section*{Hessian characterization of L-Smooth functions}\label{sec:HessianVsSmoothness}
+\section{Hessian characterization of L-Smooth functions}\label{sec:HessianVsSmoothness}
 
 \begin{theorem}[Hessian operator-norm bound $\Rightarrow$ global smoothness]\label{thm:hessianBoundImpliesLSmoothOnUniv}
   \lean{Lean4ML.Optimization.hessianBoundImpliesLSmoothOnUniv}
@@ -474,7 +474,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 % Necessary Conditions  (Optimization/NecessaryCondition.lean)
 % ====================================================================
 
-\section*{NecessaryConditions}\label{sec:NecessaryConditions}
+\section{NecessaryConditions}\label{sec:NecessaryConditions}
 
 \begin{theorem}[Local minimum $\Rightarrow$ gradient vanishes]\label{thm:local_min_gradient_zero}
   \lean{Lean4ML.Optimization.local_min_gradient_zero}
@@ -540,7 +540,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 % Sufficient Conditions  (Optimization/SufficientCondition.lean)
 % ====================================================================
 
-\section*{SufficientConditions}\label{sec:SufficientConditions}
+\section{SufficientConditions}\label{sec:SufficientConditions}
 
 \begin{definition}[Strict local minimizer]\label{def:IsStrictLocalMin}
   \lean{Lean4ML.Optimization.IsStrictLocalMin}
@@ -670,7 +670,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 % Gradient Flow  (lean4ml/Optimization/GradientFlow.lean)
 % ====================================================================
 
-\section*{GradientFlow}\label{sec:GradientFlow}
+\section{GradientFlow}\label{sec:GradientFlow}
 
 Throughout this section, $E$ is a real Hilbert space, $f : E \to \mathbb{R}$,
 and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
@@ -965,7 +965,7 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
 % Polyak--Łojasiewicz condition and convergence  (Optimization/GradientFlow.lean)
 % ====================================================================
 
-\section*{Polyak--Łojasiewicz condition and convergence}\label{sec:PL}
+\section{Polyak--Łojasiewicz condition and convergence}\label{sec:PL}
 
 \begin{lemma}[Energy gap derivative and PL differential inequality]\label{lem:energyGap_hasDerivAt_and_le}
   \lean{Lean4ML.Optimization.energyGap_hasDerivAt_and_le}

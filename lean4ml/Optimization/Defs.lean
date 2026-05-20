@@ -36,6 +36,9 @@ lemma LSmoothOn_mono {f : E → ℝ} {L : NNReal} {S T : Set E}
 def hessian (f : E → ℝ) (x : E) : E →L[ℝ] E :=
   fderiv ℝ (fun y => gradient f y) x
 
+/-- Set of minimizers of `f` over the set S. -/
+def minimizersOn (f : E → ℝ) (s : Set E) : Set E :=
+  {x ∈ s | IsMinOn f s x}
 
 /-- Strict local minimizer: there is a neighborhood `U` of `x` where `f x < f y` for `y ≠ x`. -/
 def IsStrictLocalMin (f : E → ℝ) (x : E) : Prop :=

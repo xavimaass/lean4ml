@@ -1,4 +1,5 @@
 import lean4ml.Example
+import lean4ml.Optimization.Convex
 import lean4ml.Optimization.Defs
 import lean4ml.Optimization.GradientFlow
 import lean4ml.Optimization.LSmooth

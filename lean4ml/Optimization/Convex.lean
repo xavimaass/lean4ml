@@ -1,4 +1,8 @@
-import Mathlib
+import lean4ml.Optimization.Defs
+import Mathlib.Analysis.Convex.Extrema
+import Mathlib.Analysis.Calculus.Deriv.Mul
+import Mathlib.Analysis.Calculus.Deriv.Comp
+import Mathlib.Analysis.Calculus.Deriv.Slope
 
 open scoped Real
 open scoped RealInnerProductSpace
@@ -12,11 +16,8 @@ variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
 variable {f : E → ℝ} {s : Set E}
 variable {x y : E}
 
-def minimizersOn (f : E → ℝ) (s : Set E) : Set E :=
-  {x ∈ s | IsMinOn f s x}
-
 -- theorem 2.6 - a)
-#check IsMinOn.of_isLocalMinOn_of_convexOn
+--#check IsMinOn.of_isLocalMinOn_of_convexOn
 
 -- theorem 2.6 - b)
 theorem ConvexOn.convex_minimizers_instructional
