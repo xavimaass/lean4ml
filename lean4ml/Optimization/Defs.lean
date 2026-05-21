@@ -44,10 +44,6 @@ def minimizersOn (f : E → ℝ) (s : Set E) : Set E :=
 def IsStrictLocalMin (f : E → ℝ) (x : E) : Prop :=
   ∃ U ∈ 𝓝 x, ∀ y ∈ U, y ≠ x → f x < f y
 
-/-- Set of minimizers -/
-def minimizersOn (f : E → ℝ) (s : Set E) : Set E :=
-  {x ∈ s | IsMinOn f s x}
-
 /-- Globally Polyak--Łojasiewicz function: there exists a positive constant `μ` such that the PL inequality holds globally. -/
 def GloballyPL (f : E → ℝ) (μ : ℝ) (_hμ : 0 < μ) : Prop :=
   let _ := _hμ
