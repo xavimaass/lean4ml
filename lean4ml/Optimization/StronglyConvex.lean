@@ -1,22 +1,8 @@
--- Calculus
-import Mathlib.Analysis.Calculus.FDeriv.Add
-import Mathlib.Analysis.Calculus.FDeriv.Mul
-import Mathlib.Analysis.Calculus.FDeriv.Comp
 import Mathlib.Analysis.Calculus.FDeriv.Symmetric
-import Mathlib.Analysis.Calculus.Deriv.Slope
-import Mathlib.Analysis.Calculus.ContDiff.Basic
-import Mathlib.Analysis.Calculus.MeanValue
-
--- Convexity
 import Mathlib.Analysis.Convex.Strong
-import Mathlib.Analysis.Convex.Deriv
-
--- Inner product space (gradient, hessian, polarization)
 import Mathlib.Analysis.InnerProductSpace.Calculus
-import Mathlib.Analysis.InnerProductSpace.Dual
 
 -- Custom
-import lean4ml.Optimization.Defs
 import lean4ml.Optimization.Convex
 import lean4ml.Optimization.LSmooth
 
@@ -31,6 +17,14 @@ namespace Optimization
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
 variable {f : E → ℝ} {s : Set E} {m : ℝ} {L : NNReal}
 variable {x y : E}
+
+-- expansion of ‖a + r • b‖² in a real inner product space
+omit [CompleteSpace E] in
+lemma norm_add_smul_sq (a b : E) (r : ℝ) :
+    ‖a + r • b‖ ^ 2 = ‖a‖ ^ 2 + 2 * r * ⟪a, b⟫ + r ^ 2 * ‖b‖ ^ 2 := by
+  rw [norm_add_sq_real, real_inner_smul_right, norm_smul,
+      Real.norm_eq_abs, mul_pow, sq_abs]
+  ring
 
 -- first-order characterization of convexity
 omit [CompleteSpace E] in
@@ -358,3 +352,58 @@ lemma convexOn_lSmoothOn_iff_hessian_sandwich
   exact ⟨lSmooth_imp_hessian_ub h_smooth, hessian_ub_imp_lSmooth h_smooth h_conv⟩
 
 end HessianSandwich
+
+section HessianPL
+
+-- every strongly convex function is globally PL
+theorem StrongConvexOn.globallyPL
+    (h_conv : StrongConvexOn univ m f)
+    (h_diff : Differentiable ℝ f)
+    (hm : 0 < m) :
+    GloballyPL f m hm := by
+  intro x
+  set g := gradient f x with hg_def
+  have h_two_m_pos : (0:ℝ) < 2 * m := by linarith
+  -- Completing the square: for any z, f z ≥ f x - 1/(2m) ‖g‖².
+  have h_lower : ∀ z : E, f x - 1 / (2 * m) * ‖g‖ ^ 2 ≤ f z := by
+    intro z
+    have h_fo_z : f x + fderiv ℝ f x (z - x) + m / 2 * ‖x - z‖ ^ 2 ≤ f z :=
+      StronglyConvexOn.add_fderiv_le h_conv (h_diff x) (mem_univ _) (mem_univ _)
+    have h_inner : fderiv ℝ f x (z - x) = ⟪g, z - x⟫ := by
+      simp [hg_def, gradient]
+    have h_eq_sq : ‖x - z‖ ^ 2 = ‖z - x‖ ^ 2 := by rw [norm_sub_rev]
+    rw [h_inner, h_eq_sq] at h_fo_z
+    -- Expand ‖g + m•(z-x)‖² ≥ 0 via inner product.
+    have h_sq_nn : (0:ℝ) ≤ ‖g + m • (z - x)‖ ^ 2 := sq_nonneg _
+    have h_expand : ‖g + m • (z - x)‖ ^ 2
+        = ‖g‖ ^ 2 + 2 * m * ⟪g, z - x⟫ + m ^ 2 * ‖z - x‖ ^ 2 :=
+      norm_add_smul_sq g (z - x) m
+    have h_sq_expanded : (0:ℝ) ≤ ‖g‖ ^ 2 + 2 * m * ⟪g, z - x⟫ + m ^ 2 * ‖z - x‖ ^ 2 :=
+      h_expand ▸ h_sq_nn
+    -- Multiply h_fo_z by 2m and combine with h_sq_expanded to get
+    -- 2m * f x - ‖g‖² ≤ 2m * f z.
+    have h_fo_2m : 2 * m * f x + 2 * m * ⟪g, z - x⟫ + m ^ 2 * ‖z - x‖ ^ 2
+        ≤ 2 * m * f z := by
+      have := mul_le_mul_of_nonneg_left h_fo_z h_two_m_pos.le
+      nlinarith [this]
+    have h_combine : 2 * m * f x - ‖g‖ ^ 2 ≤ 2 * m * f z := by linarith
+    -- Divide by 2m.
+    have h_div := (div_le_div_iff_of_pos_right h_two_m_pos).mpr h_combine
+    have h_eq1 : (2 * m * f x - ‖g‖ ^ 2) / (2 * m) = f x - 1 / (2 * m) * ‖g‖ ^ 2 := by
+      field_simp
+    have h_eq2 : (2 * m * f z) / (2 * m) = f z := by
+      field_simp
+    linarith [h_div, h_eq1, h_eq2]
+  -- Bounded below ⇒ iInf f ≥ f x - 1/(2m) ‖g‖².
+  have h_bdd : BddBelow (Set.range f) :=
+    ⟨f x - 1 / (2 * m) * ‖g‖ ^ 2, by rintro _ ⟨z, rfl⟩; exact h_lower z⟩
+  have h_inf_ge : f x - 1 / (2 * m) * ‖g‖ ^ 2 ≤ iInf f :=
+    le_ciInf h_lower
+  -- Conclude: ‖g‖² ≥ 2m (f x - iInf f).
+  show ‖g‖ ^ 2 ≥ 2 * m * (f x - iInf f)
+  have h_mul := mul_le_mul_of_nonneg_left h_inf_ge h_two_m_pos.le
+  have h_arith : 2 * m * (f x - 1 / (2 * m) * ‖g‖ ^ 2) = 2 * m * f x - ‖g‖ ^ 2 := by
+    field_simp
+  linarith [h_mul, h_arith]
+
+end HessianPL
