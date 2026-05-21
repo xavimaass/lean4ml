@@ -1,9 +1,24 @@
-import Mathlib
-import Mathlib.Analysis.InnerProductSpace.Calculus
+-- Calculus
+import Mathlib.Analysis.Calculus.FDeriv.Add
+import Mathlib.Analysis.Calculus.FDeriv.Mul
+import Mathlib.Analysis.Calculus.FDeriv.Comp
+import Mathlib.Analysis.Calculus.FDeriv.Symmetric
+import Mathlib.Analysis.Calculus.Deriv.Slope
+import Mathlib.Analysis.Calculus.ContDiff.Basic
+import Mathlib.Analysis.Calculus.MeanValue
 
--- Custom --
+-- Convexity
+import Mathlib.Analysis.Convex.Strong
+import Mathlib.Analysis.Convex.Deriv
+
+-- Inner product space (gradient, hessian, polarization)
+import Mathlib.Analysis.InnerProductSpace.Calculus
+import Mathlib.Analysis.InnerProductSpace.Dual
+
+-- Custom
 import lean4ml.Optimization.Defs
 import lean4ml.Optimization.Convex
+import lean4ml.Optimization.LSmooth
 
 open scoped Real
 open scoped RealInnerProductSpace
@@ -80,15 +95,266 @@ theorem StrongConvexOn.isMinOn_of_fderiv_eq_zero
     exact sub_eq_zero.mp ( norm_eq_zero.mp h_dist )
   exact h_eq'.symm
 
+section HessianStrongConvexity
+
+/- The gradient of f is C¹ when f is C². -/
+lemma gradient_contDiff_one (h_smooth : ContDiff ℝ 2 f) :
+    ContDiff ℝ 1 (fun y => gradient f y) := by
+  simp [gradient]
+  exact (LinearIsometryEquiv.contDiff _).comp (h_smooth.fderiv_right (m := 1) (by norm_num))
+
+/- HasFDerivAt for the gradient at each point, when f is C². -/
+lemma hasFDerivAt_gradient (h_smooth : ContDiff ℝ 2 f) (x : E) :
+    HasFDerivAt (fun y => gradient f y) (hessian f x) x := by
+  have := gradient_contDiff_one h_smooth
+  exact (this.contDiffAt.differentiableAt (by norm_num)).hasFDerivAt
+
+/-
+Forward direction: strong convexity implies Hessian lower bound.
+    Key idea: apply first-order characterization at (x, x+tu) and (x+tu, x),
+    add them to get ⟨∇f(x+tu) - ∇f(x), u⟩ ≥ m*t*‖u‖², divide by t, take t→0.
+-/
+set_option maxHeartbeats 400000 in
+lemma strongConvexOn_imp_hessian_lb
+    (h_smooth : ContDiff ℝ 2 f)
+    (h_conv : StrongConvexOn univ m f) :
+    ∀ x : E, ∀ u : E, m * ‖u‖ ^ 2 ≤ ⟪hessian f x u, u⟫ := by
+  intro x u
+  have h_forward : ∀ t : ℝ, 0 < t → (fderiv ℝ f (x + t • u) u - fderiv ℝ f x u) / t ≥ m * ‖u‖ ^ 2 := by
+    intro t ht
+    have h_add : f x + fderiv ℝ f x (t • u) + m / 2 * ‖t • u‖ ^ 2 ≤ f (x + t • u) := by
+      have := h_conv.2 ( Set.mem_univ x ) ( Set.mem_univ ( x + t • u ) );
+      have h_lim : Filter.Tendsto (fun a : ℝ => (f (a • x + (1 - a) • (x + t • u)) - f x) / (1 - a)) (nhdsWithin 1 (Set.Iio 1)) (nhds ((fderiv ℝ f x) (t • u))) := by
+        have h_lim : HasDerivAt (fun a : ℝ => f (a • x + (1 - a) • (x + t • u))) ((fderiv ℝ f x) (t • u) * (-1)) 1 := by
+          convert HasFDerivAt.hasDerivAt ( HasFDerivAt.comp 1 ( h_smooth.contDiffAt.differentiableAt ( by norm_num ) |> DifferentiableAt.hasFDerivAt ) ( HasFDerivAt.add ( HasFDerivAt.smul ( hasFDerivAt_id 1 ) ( hasFDerivAt_const _ _ ) ) ( HasFDerivAt.smul ( hasFDerivAt_id 1 |> HasFDerivAt.const_sub <| 1 ) ( hasFDerivAt_const _ _ ) ) ) ) using 1 ; norm_num;
+        rw [ hasDerivAt_iff_tendsto_slope ] at h_lim;
+        convert h_lim.neg.mono_left <| nhdsWithin_mono _ _ using 2 <;> norm_num [ div_eq_inv_mul, slope_def_field ];
+        rw [ ← neg_sub, inv_neg ] ; ring;
+      have h_lim_le : ∀ᶠ a in nhdsWithin 1 (Set.Iio 1), (f (a • x + (1 - a) • (x + t • u)) - f x) / (1 - a) ≤ f (x + t • u) - f x - a * (m / 2) * ‖t • u‖ ^ 2 := by
+        filter_upwards [ Ioo_mem_nhdsLT zero_lt_one ] with a ha;
+        rw [ div_le_iff₀ ] <;> norm_num at *;
+        · convert this ha.1.le ( sub_nonneg.2 ha.2.le ) ( by linarith ) using 1 ; ring;
+        · linarith;
+      have h_lim_le : (fderiv ℝ f x) (t • u) ≤ f (x + t • u) - f x - 1 * (m / 2) * ‖t • u‖ ^ 2 := by
+        exact le_of_tendsto_of_tendsto h_lim ( Filter.Tendsto.sub ( tendsto_const_nhds ) ( Filter.Tendsto.mul ( Filter.Tendsto.mul ( Filter.tendsto_id.mono_left inf_le_left ) tendsto_const_nhds ) tendsto_const_nhds ) ) h_lim_le |> le_trans <| by norm_num;
+      linarith
+    have h_add' : f (x + t • u) + fderiv ℝ f (x + t • u) (-t • u) + m / 2 * ‖-t • u‖ ^ 2 ≤ f x := by
+      have := h_conv.2 ( Set.mem_univ ( x + t • u ) ) ( Set.mem_univ x );
+      have h_add' : Filter.Tendsto (fun s : ℝ => (f (x + t • u + s • (-t • u)) - f (x + t • u)) / s) (nhdsWithin 0 (Set.Ioi 0)) (nhds ((fderiv ℝ f (x + t • u)) (-t • u))) := by
+        have h_add' : HasDerivAt (fun s : ℝ => f (x + t • u + s • (-t • u))) ((fderiv ℝ f (x + t • u)) (-t • u)) 0 := by
+          convert HasFDerivAt.hasDerivAt ( HasFDerivAt.comp 0 ( h_smooth.contDiffAt.differentiableAt ( by norm_num ) |> DifferentiableAt.hasFDerivAt ) ( HasFDerivAt.add ( hasFDerivAt_const _ _ ) ( HasFDerivAt.smul ( hasFDerivAt_id 0 ) ( hasFDerivAt_const _ _ ) ) ) ) using 1 ; norm_num;
+        simpa [ div_eq_inv_mul ] using h_add'.tendsto_slope_zero_right;
+      have h_add' : ∀ᶠ s in nhdsWithin 0 (Set.Ioi 0), (f (x + t • u + s • (-t • u)) - f (x + t • u)) / s ≤ (f x - f (x + t • u)) - (1 / 2) * m * ‖-t • u‖ ^ 2 * (1 - s) := by
+        filter_upwards [ Ioo_mem_nhdsGT zero_lt_one ] with s hs;
+        have := @this ( 1 - s ) s ( by linarith [ hs.1, hs.2 ] ) ( by linarith [ hs.1, hs.2 ] ) ( by linarith [ hs.1, hs.2 ] ) ; simp_all +decide [ div_le_iff₀, norm_smul, sq ] ;
+        convert this using 1 <;> ring_nf;
+        simp +decide [ sub_smul ] ; abel_nf;
+      have h_add' : (fderiv ℝ f (x + t • u)) (-t • u) ≤ f x - f (x + t • u) - (1 / 2) * m * ‖-t • u‖ ^ 2 := by
+        have h_add' : Filter.Tendsto (fun s : ℝ => f x - f (x + t • u) - (1 / 2) * m * ‖-t • u‖ ^ 2 * (1 - s)) (nhdsWithin 0 (Set.Ioi 0)) (nhds (f x - f (x + t • u) - (1 / 2) * m * ‖-t • u‖ ^ 2)) := by
+          exact tendsto_nhdsWithin_of_tendsto_nhds ( Continuous.tendsto' ( by continuity ) _ _ ( by norm_num ) );
+        exact le_of_tendsto_of_tendsto ‹_› ‹_› ‹_›;
+      linarith
+    simp_all +decide [ norm_smul, sq ];
+    rw [ le_div_iff₀' ht ] ; rw [ abs_of_pos ht ] at * ; nlinarith [ mul_pos ht ht ] ;
+  have h_limit : Filter.Tendsto (fun t : ℝ => ((fderiv ℝ f (x + t • u)) u - (fderiv ℝ f x) u) / t) (nhdsWithin 0 (Set.Ioi 0)) (nhds (fderiv ℝ (fun y => fderiv ℝ f y u) x u)) := by
+    have h_limit : HasDerivAt (fun t : ℝ => (fderiv ℝ f (x + t • u)) u) ((fderiv ℝ (fun y => fderiv ℝ f y u) x) u) 0 := by
+      have h_diff : DifferentiableAt ℝ (fun y => fderiv ℝ f y u) x := by
+        fun_prop
+      have h_limit : HasDerivAt (fun t : ℝ => (fderiv ℝ f (x + t • u)) u) ((fderiv ℝ (fun y => fderiv ℝ f y u) x) u) 0 := by
+        have h_chain : HasDerivAt (fun t : ℝ => x + t • u) u 0 := by
+          simpa using hasDerivAt_id ( 0 : ℝ ) |> HasDerivAt.smul_const <| u
+        convert HasFDerivAt.comp_hasDerivAt _ _ h_chain using 1;
+        congr! 1;
+        rotate_left;
+        exacts [ fun y => ( fderiv ℝ f y ) u, by simpa using h_diff.hasFDerivAt, funext fun t => rfl ];
+      exact h_limit;
+    simpa [ div_eq_inv_mul ] using h_limit.tendsto_slope_zero_right;
+  have h_limit_ge : (fderiv ℝ (fun y => fderiv ℝ f y u) x) u ≥ m * ‖u‖ ^ 2 := by
+    exact le_of_tendsto_of_tendsto tendsto_const_nhds h_limit ( Filter.eventually_of_mem self_mem_nhdsWithin fun t ht => h_forward t ht );
+  have h_hessian : (fderiv ℝ (fun y => fderiv ℝ f y u) x) u = ⟪(fderiv ℝ (fun y => gradient f y) x) u, u⟫ := by
+    convert HasFDerivAt.fderiv ( HasFDerivAt.inner ℝ ( hasFDerivAt_gradient h_smooth x ) ( hasFDerivAt_const _ _ ) ) |> congr_arg ( fun f => f u ) using 1;
+    any_goals exact u;
+    · simp +decide [ gradient ];
+    · simp +decide [ hessian, fderivInnerCLM ];
+  exact h_hessian ▸ h_limit_ge
+
+/-
+Backward direction: Hessian lower bound implies strong convexity.
+    Use strongConvexOn_iff_convex to reduce to showing g(y) = f(y) - m/2*‖y‖² is convex.
+    For any line restriction φ(t) = g(x + t*d), φ''(t) = ⟨H_f(x+td)d,d⟩ - m‖d‖² ≥ 0,
+    so φ is convex, hence g is convex.
+-/
+set_option maxHeartbeats 800000 in
+lemma hessian_lb_imp_strongConvexOn
+    (h_smooth : ContDiff ℝ 2 f)
+    (h_hess : ∀ x : E, ∀ u : E, m * ‖u‖ ^ 2 ≤ ⟪hessian f x u, u⟫) :
+    StrongConvexOn univ m f := by
+  have h_second_deriv_nonneg : ∀ x : E, ∀ d : E, ∀ t : ℝ, 0 ≤ deriv^[2] (fun t => f (x + t • d) - m / (2 : ℝ) * ‖x + t • d‖ ^ 2) t := by
+    intro x d t
+    have h_second_deriv_nonneg : deriv^[2] (fun t => f (x + t • d) - m / (2 : ℝ) * ‖x + t • d‖ ^ 2) t = ⟪hessian f (x + t • d) d, d⟫ - m * ‖d‖ ^ 2 := by
+      have h_second_deriv_nonneg : deriv^[2] (fun t => f (x + t • d)) t = ⟪hessian f (x + t • d) d, d⟫ := by
+        have h_second_deriv_nonneg : deriv^[2] (fun t => f (x + t • d)) t = deriv (fun t => ⟪gradient f (x + t • d), d⟫) t := by
+          refine' Filter.EventuallyEq.deriv_eq _;
+          filter_upwards [ ] with t;
+          convert HasDerivAt.deriv ( _ ) using 1;
+          convert HasFDerivAt.hasDerivAt ( HasFDerivAt.comp t ( h_smooth.contDiffAt.differentiableAt ( by norm_num ) |> DifferentiableAt.hasFDerivAt ) ( HasFDerivAt.add ( hasFDerivAt_const _ _ ) ( HasFDerivAt.smul ( hasFDerivAt_id t ) ( hasFDerivAt_const _ _ ) ) ) ) using 1;
+          simp +decide [ gradient ];
+        convert HasDerivAt.deriv ( _ ) using 1;
+        have h_second_deriv_nonneg : HasDerivAt (fun t => gradient f (x + t • d)) (hessian f (x + t • d) d) t := by
+          convert HasFDerivAt.hasDerivAt ( HasFDerivAt.comp t ( hasFDerivAt_gradient h_smooth _ ) ( HasFDerivAt.add ( hasFDerivAt_const _ _ ) ( HasFDerivAt.smul ( hasFDerivAt_id t ) ( hasFDerivAt_const _ _ ) ) ) ) using 1;
+          simp +decide [ hessian ];
+        convert h_second_deriv_nonneg.inner ℝ ( hasDerivAt_const _ _ ) using 1;
+        simp +decide [ gradient ];
+      convert congr_arg₂ ( · - · ) h_second_deriv_nonneg ( show deriv^[2] ( fun t => m / 2 * ‖x + t • d‖ ^ 2 ) t = m * ‖d‖ ^ 2 from ?_ ) using 1;
+      · simp +zetaDelta at *;
+        rw [ show deriv ( fun t => f ( x + t • d ) - m / 2 * ‖x + t • d‖ ^ 2 ) = fun t => deriv ( fun t => f ( x + t • d ) ) t - m / 2 * deriv ( fun t => ‖x + t • d‖ ^ 2 ) t from funext fun t => ?_ ];
+        · convert deriv_sub _ _ using 1;
+          · norm_num;
+          · fun_prop;
+          · norm_num [ norm_add_sq_real, norm_smul, mul_assoc, mul_comm, mul_left_comm ];
+            norm_num [ mul_pow, inner_smul_right ];
+            fun_prop;
+        · convert deriv_sub _ _ using 1;
+          · norm_num;
+          · exact DifferentiableAt.comp t ( h_smooth.contDiffAt.differentiableAt ( by norm_num ) ) ( DifferentiableAt.add ( differentiableAt_const _ ) ( differentiableAt_id.smul_const _ ) );
+          · exact DifferentiableAt.mul ( differentiableAt_const _ ) ( DifferentiableAt.norm_sq ℝ ( DifferentiableAt.add ( differentiableAt_const _ ) ( differentiableAt_id.smul_const _ ) ) );
+      · norm_num [ norm_add_sq_real, norm_smul, mul_pow ] ; ring_nf;
+        norm_num [ inner_smul_right, mul_assoc, mul_comm, mul_left_comm ] ; ring_nf;
+        unfold deriv ; norm_num [ fderiv_apply_one_eq_deriv ] ; ring_nf ; norm_num;
+        have h : deriv (fun x_1 ↦ deriv (fun x_2 ↦ ‖x‖^2 + x_2 * ⟪x, d⟫ * 2 + x_2^2 * ‖d‖^2) x_1) t
+         = 2 * ‖d‖^2 := by
+          simp (disch := fun_prop) [
+            deriv_const, deriv_id''
+          ]
+          left
+          have h_eta : (HMul.hMul (2 : ℝ) : ℝ → ℝ) = fun x => 2 * x := rfl
+          rw [h_eta, deriv_const_mul _ (by fun_prop), deriv_id'']
+          simp
+        left
+        rw [h]
+        ring
+    linarith [ h_hess ( x + t • d ) d ];
+  have h_convex : ∀ x : E, ∀ d : E, ConvexOn ℝ Set.univ (fun t : ℝ => f (x + t • d) - m / (2 : ℝ) * ‖x + t • d‖ ^ 2) := by
+    intro x d
+    apply convexOn_of_deriv2_nonneg' (convex_univ);
+    · refine' DifferentiableOn.sub _ _;
+      · exact Differentiable.differentiableOn ( h_smooth.differentiable ( by norm_num ) |> Differentiable.comp <| Differentiable.add ( differentiable_const _ ) <| differentiable_id.smul_const _ );
+      · exact Differentiable.differentiableOn ( by exact Differentiable.const_mul ( by exact Differentiable.norm_sq ℝ ( by exact Differentiable.add ( differentiable_const _ ) ( differentiable_id.smul_const _ ) ) ) _ );
+    · -- Since $f$ is $C^2$, the composition $t \mapsto f(x + t \cdot d)$ is also $C^2$.
+      have h_comp : ContDiff ℝ 2 (fun t : ℝ => f (x + t • d)) := by
+        exact h_smooth.comp ( contDiff_const.add ( contDiff_id.smul contDiff_const ) );
+      have h_comp : ContDiff ℝ 2 (fun t : ℝ => f (x + t • d) - m / (2 : ℝ) * ‖x + t • d‖ ^ 2) := by
+        exact h_comp.sub ( ContDiff.mul ( contDiff_const ) ( ContDiff.norm_sq ℝ ( contDiff_const.add ( contDiff_id.smul contDiff_const ) ) ) );
+      fun_prop;
+    · exact fun t _ => h_second_deriv_nonneg x d t;
+  convert strongConvexOn_iff_convex.mpr _ using 1;
+  refine' ⟨ convex_univ, fun x _ y _ a b ha hb hab => _ ⟩;
+  have := h_convex x ( y - x );
+  have := this.2 ( Set.mem_univ 0 ) ( Set.mem_univ 1 ) ha hb hab; simp_all +decide [ ← eq_sub_iff_add_eq' ] ;
+  convert this using 1 <;> simp +decide [ sub_smul, smul_sub ] ; abel_nf;
+  exact Or.inl ( congr_arg Norm.norm ( by abel1 ) )
+
 -- lemma 2.9: hessian characterization of strong convexity
 lemma strongConvexOn_iff_hessian_lb
     (h_smooth : ContDiff ℝ 2 f) :
-    StrongConvexOn s m f ↔ ∀ x ∈ s, ∀ u : E, m * ‖u‖ ^ 2 ≤ ⟪hessian f x u, u⟫ := by
-  sorry
+    StrongConvexOn univ m f ↔ ∀ x : E, ∀ u : E, m * ‖u‖ ^ 2 ≤ ⟪hessian f x u, u⟫ := by
+  exact ⟨strongConvexOn_imp_hessian_lb h_smooth, hessian_lb_imp_strongConvexOn h_smooth⟩
+
+end HessianStrongConvexity
+
+section HessianSandwich
+/-
+Forward: L-smoothness implies Hessian upper bound.
+-/
+lemma lSmooth_imp_hessian_ub
+    (h_smooth : ContDiff ℝ 2 f)
+    (hL : LSmoothfn f L) :
+    ∀ x : E, ∀ u : E, ⟪hessian f x u, u⟫ ≤ ↑L * ‖u‖ ^ 2 := by
+  exact lSmoothOnUnivImpliesHessianQuadraticFormBound f L hL (fun x => hasFDerivAt_gradient h_smooth x)
+
+/-
+For a self-adjoint, PSD operator with ⟨Au,u⟩ ≤ c*‖u‖², we have ‖A‖ ≤ c.
+    Proof: by polarization, ⟨Au,v⟩ = 1/4(⟨A(u+v),u+v⟩ - ⟨A(u-v),u-v⟩).
+    So |⟨Au,v⟩| ≤ c/2*(‖u‖² + ‖v‖²). Setting v = (‖u‖/‖Au‖)*Au gives ‖Au‖ ≤ c*‖u‖.
+-/
+omit [CompleteSpace E] in
+lemma opNorm_le_of_inner_le_of_symm_of_nonneg
+    (A : E →L[ℝ] E) (c : ℝ) (hc : 0 ≤ c)
+    (h_symm : ∀ u v : E, ⟪A u, v⟫ = ⟪u, A v⟫)
+    (h_nonneg : ∀ u : E, 0 ≤ ⟪A u, u⟫)
+    (h_ub : ∀ u : E, ⟪A u, u⟫ ≤ c * ‖u‖ ^ 2) :
+    ‖A‖ ≤ c := by
+  -- We show $\|Au\| \le c\|u\|$ for all $u$. This follows from the polarization identity.
+  have h_polarization : ∀ u v : E, |⟪A u, v⟫| ≤ c / 2 * (‖u‖^2 + ‖v‖^2) := by
+    -- Use the parallelogram law to relate the norm of the sum to the inner product.
+    have h_parallelogram : ∀ u v : E, ‖u + v‖ ^ 2 = ‖u‖ ^ 2 + 2 * ⟪u, v⟫ + ‖v‖ ^ 2 ∧ ‖u - v‖ ^ 2 = ‖u‖ ^ 2 - 2 * ⟪u, v⟫ + ‖v‖ ^ 2 := by
+      simp +decide [ @norm_add_sq ℝ, @norm_sub_sq ℝ ];
+    intro u v
+    have h_polarization : 4 * ⟪A u, v⟫ = ⟪A (u + v), u + v⟫ - ⟪A (u - v), u - v⟫ := by
+      simp +decide [ h_symm, inner_add_left, inner_add_right, inner_sub_left, inner_sub_right ] ; ring_nf;
+      grind;
+    have h_polarization : 4 * ⟪A u, v⟫ ≤ c * ‖u + v‖ ^ 2 ∧ -4 * ⟪A u, v⟫ ≤ c * ‖u - v‖ ^ 2 := by
+      constructor <;> linarith [ h_ub ( u + v ), h_ub ( u - v ), h_nonneg ( u + v ), h_nonneg ( u - v ) ];
+    exact abs_le.mpr ⟨ by nlinarith [ h_parallelogram u v ], by nlinarith [ h_parallelogram u v ] ⟩;
+  refine' ContinuousLinearMap.opNorm_le_bound _ hc fun u => _;
+  by_cases hu : u = 0 <;> specialize h_polarization u ( ( ‖u‖ / ‖A u‖ ) • A u ) <;> simp_all +decide [ norm_smul, inner_smul_right ];
+  by_cases h : A u = 0 <;> simp_all;
+  rw [ abs_of_nonneg ( by positivity ), div_mul_eq_mul_div, div_le_iff₀ ( by positivity ) ] at h_polarization;
+  have := h_symm u ( A u ) ; simp_all +decide [ real_inner_comm ] ;
+  cases abs_cases ( ⟪u, A ( A u )⟫ ) <;> nlinarith [ norm_pos_iff.mpr hu, norm_pos_iff.mpr h, mul_pos ( norm_pos_iff.mpr hu ) ( norm_pos_iff.mpr h ) ]
+
+/-
+The Hessian of a C² function is self-adjoint.
+-/
+lemma hessian_isSymmetric
+    (h_smooth : ContDiff ℝ 2 f) (x : E) :
+    ∀ u v : E, ⟪hessian f x u, v⟫ = ⟪u, hessian f x v⟫ := by
+      have h_second_deriv_symm : ∀ u v : E, (fderiv ℝ (fderiv ℝ f) x) u v = (fderiv ℝ (fderiv ℝ f) x) v u := by
+        apply_rules [ ContDiffAt.isSymmSndFDerivAt ];
+        exacts [ h_smooth.contDiffAt, by norm_num [ minSmoothness ] ];
+      -- By definition of the gradient, we know that
+      have h_grad_def : ∀ u : E, gradient f u = (InnerProductSpace.toDual ℝ E).symm (fderiv ℝ f u) := by
+        -- By definition of the gradient, we know that the gradient of f at u is the dual of the derivative of f at u.
+        simp [gradient];
+      unfold hessian;
+      rw [ show ( fun y => gradient f y ) = ( InnerProductSpace.toDual ℝ E ).symm ∘ ( fderiv ℝ f ) from funext h_grad_def ];
+      rw [ fderiv_comp ] <;> norm_num [ h_smooth.contDiffAt.differentiableAt ];
+      · intro u v;
+        rw [
+          show ( fderiv ℝ ⇑( InnerProductSpace.toDual ℝ E ).symm ) ( fderiv ℝ f x )
+            = ((InnerProductSpace.toDual ℝ E).symm.toContinuousLinearEquiv.toContinuousLinearMap
+                : (StrongDual ℝ E) →L[ℝ] E) from ?_
+        ]
+        simp +decide;
+        · erw [ InnerProductSpace.toDual_symm_apply, real_inner_comm, InnerProductSpace.toDual_symm_apply ]
+          exact h_second_deriv_symm u v;
+        · exact HasFDerivAt.fderiv ( by exact ( InnerProductSpace.toDual ℝ E ).symm.toContinuousLinearEquiv.hasFDerivAt );
+      · exact ( InnerProductSpace.toDual ℝ E ).symm.differentiableAt;
+      · fun_prop
+
+/-
+Backward: Hessian upper bound + convexity implies L-smoothness.
+    We need ‖hessian f x‖ ≤ L for all x. Since f is convex, Hessian is PSD.
+    Combined with ⟨Hu,u⟩ ≤ L‖u‖² and self-adjointness (from C²), we get ‖H‖ ≤ L.
+-/
+lemma hessian_ub_imp_lSmooth
+    (h_smooth : ContDiff ℝ 2 f)
+    (h_conv : ConvexOn ℝ univ f)
+    (h_hess : ∀ x : E, ∀ u : E, ⟪hessian f x u, u⟫ ≤ ↑L * ‖u‖ ^ 2) :
+    LSmoothfn f L := by
+  apply_rules [ hessianBoundImpliesLSmoothOnUniv ];
+  · exact fun x => hasFDerivAt_gradient h_smooth x;
+  · intro x;
+    apply_rules [ opNorm_le_of_inner_le_of_symm_of_nonneg ];
+    · exact NNReal.coe_nonneg L;
+    · exact fun u v => hessian_isSymmetric h_smooth x u v;
+    · exact fun u => by simpa using strongConvexOn_imp_hessian_lb h_smooth ( strongConvexOn_zero.mpr h_conv ) x u
 
 -- corollary 2.10: hessian sandwich characterization of L-smooth convex functions
 lemma convexOn_lSmoothOn_iff_hessian_sandwich
     (h_smooth : ContDiff ℝ 2 f)
-    (h_conv : ConvexOn ℝ s f) :
-    LSmoothOn f L s ↔ ∀ x ∈ s, ∀ u : E, ⟪hessian f x u, u⟫ ≤ ↑L * ‖u‖ ^ 2 := by
-  sorry
+    (h_conv : ConvexOn ℝ univ f) :
+    LSmoothfn f L ↔ ∀ x : E, ∀ u : E, ⟪hessian f x u, u⟫ ≤ ↑L * ‖u‖ ^ 2 := by
+  exact ⟨lSmooth_imp_hessian_ub h_smooth, hessian_ub_imp_lSmooth h_smooth h_conv⟩
+
+end HessianSandwich
