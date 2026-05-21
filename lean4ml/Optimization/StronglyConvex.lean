@@ -1,10 +1,8 @@
+import lean4ml.Optimization.Convex
+import lean4ml.Optimization.LSmooth
 import Mathlib.Analysis.Calculus.FDeriv.Symmetric
 import Mathlib.Analysis.Convex.Strong
 import Mathlib.Analysis.InnerProductSpace.Calculus
-
--- Custom
-import lean4ml.Optimization.Convex
-import lean4ml.Optimization.LSmooth
 
 open scoped Real
 open scoped RealInnerProductSpace
