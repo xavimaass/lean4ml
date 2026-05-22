@@ -60,7 +60,7 @@ theorem gradientFlow_strongConvex_trajectory_tendsto
     generalize_proofs at *; (
     -- Since $f(xstar) = iInf f$, we have $f(φ(t)) - f(xstar) \to 0$ as $t \to \infty$.
     have h_diff_zero : Filter.Tendsto (fun t => f (φ.trajectory t) - f xstar) Filter.atTop (nhds 0) := by
-      convert h_tendsto.sub_const ( f xstar ) using 2 ; ring!; (
+      convert h_tendsto.sub_const ( f xstar ) using 2 ; ring_nf!; (
       rw [ eq_comm, sub_eq_zero ] ; exact le_antisymm ( csInf_le ⟨ f xstar, Set.forall_mem_range.2 hxstar ⟩ ⟨ xstar, rfl ⟩ ) ( le_csInf ⟨ f xstar, Set.mem_range_self xstar ⟩ ( Set.forall_mem_range.2 hxstar ) ) ;)
     generalize_proofs at *; (
     -- Since $μ / 2 * ‖φ(t) - xstar‖ ^ 2 ≤ f(φ(t)) - f(xstar)$ and $f(φ(t)) - f(xstar) \to 0$, we have $‖φ(t) - xstar‖ ^ 2 \to 0$.

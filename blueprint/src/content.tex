@@ -1278,6 +1278,23 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
   by the usual bounding arguments (show $f(x)\le iInf f$ and $iInf f \le f(x)$ using bounded-below).
 \end{proof}
 
+\begin{lemma}[Strongly convex $C^1$ functions are bounded below]\label{lem:StrongConvexOn_bddBelow_range}
+  \lean{Lean4ML.Optimization.StrongConvexOn.bddBelow_range}
+  \leanok{}
+  \uses{thm:StrongConvexOn_globallyPL}
+  If $f$ is strongly convex on $E$ with modulus $\mu>0$ and $f\in C^1$, then the range of $f$ is bounded below.
+\end{lemma}
+
+\begin{proof}
+  \leanok{}
+  This is exactly the bounded-below conclusion extracted from the proof of
+  Theorem~\ref{thm:StrongConvexOn_globallyPL}. For each $x_0\in E$, the strong convexity inequality yields a uniform lower bound of the form
+  \[
+    f(z) \ge f(x_0) - \frac{1}{2\mu}\|\nabla f(x_0)\|^2 \quad \text{for all } z\in E,
+  \]
+  so choosing any $x_0$ gives a global lower bound for the range of $f$.
+\end{proof}
+
 \begin{lemma}[Midpoint distance bound]\label{lem:midpoint_dist_bound}
   \lean{Lean4ML.Optimization.StrongConvexOn.midpoint_dist_bound}
   \leanok{}
@@ -1297,7 +1314,7 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
 \begin{theorem}[Existence of a minimizer for C¹ strongly convex functions]\label{thm:exists_minimizer_strong_convex}
   \lean{Lean4ML.Optimization.StrongConvexOn.exists_minimizer}
   \leanok{}
-  \uses{lem:midpoint_dist_bound}
+  \uses{lem:midpoint_dist_bound,lem:StrongConvexOn_bddBelow_range}
   If $f\in C^1$ is strongly convex on a complete Hilbert space $E$ with modulus $\mu>0$, then $f$ attains its infimum;
   i.e. there exists $x^*\in E$ with $f(x^*)=\inf f$.
 \end{theorem}
@@ -1544,9 +1561,9 @@ the trajectory itself converges to the unique global minimizer.
 \begin{proof}
   \leanok{}
   Strong convexity (with $\mu>0$) together with differentiability implies the
-  global PL inequality by Theorem~\ref{thm:StrongConvexOn_globallyPL} (Lean: \texttt{StrongConvexOn.globallyPL}).
+  global PL inequality by Theorem~\ref{thm:StrongConvexOn_globallyPL}.
   Moreover a $C^1$ strongly convex function is bounded below (see
-  \texttt{StrongConvexOn.bddBelow_range}). Applying the convergence result
+  Lemma~\ref{lem:StrongConvexOn_bddBelow_range}). Applying the convergence result
   for flows under the PL condition (Theorem~\ref{thm:gradientFlow_PL_tendsto})
   yields the claim.
 \end{proof}
@@ -1565,8 +1582,8 @@ the trajectory itself converges to the unique global minimizer.
 \begin{proof}
   \leanok{}
   By strong convexity and $C^1$ regularity, $f$ attains a unique global minimizer
-  $x^*$ (Lean: \texttt{StrongConvexOn.exists_minimizer} together with the uniqueness
-  provided by \texttt{StrongConvexOn.isMinOn_of_fderiv_eq_zero}). From
+  $x^*$ (Theorem~\ref{thm:exists_minimizer_strong_convex} together with the uniqueness
+  provided by Theorem~\ref{thm:unique_minimizer_strong_convex}). From
   Theorem~\ref{thm:gradientFlow_strongConvex_tendsto} we know the energy along the
   trajectory satisfies $f(\varphi(t))\to f(x^*)=\inf f$.
 
