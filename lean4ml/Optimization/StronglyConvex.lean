@@ -1,5 +1,6 @@
 import lean4ml.Optimization.Convex
 import lean4ml.Optimization.LSmooth
+import lean4ml.Optimization.NecessaryCondition
 import Mathlib.Analysis.Calculus.FDeriv.Symmetric
 import Mathlib.Analysis.Convex.Strong
 import Mathlib.Analysis.InnerProductSpace.Calculus
@@ -86,6 +87,139 @@ theorem StrongConvexOn.isMinOn_of_fderiv_eq_zero
   have h_eq' : x = y := by
     exact sub_eq_zero.mp ( norm_eq_zero.mp h_dist )
   exact h_eq'.symm
+
+/-
+Simple corollary: for a C¹ strongly convex function, any stationary point is a global minimizer
+and the infimum of f equals its value at that point.
+-/
+omit [CompleteSpace E] in
+theorem StrongConvexOn.isMinOn_of_stationary
+    (h_conv : StrongConvexOn univ m f)
+    (h_diff : Differentiable ℝ f)
+    (hm : 0 < m) {x : E}
+    (h_stat : fderiv ℝ f x = 0) :
+    IsMinOn f univ x ∧ iInf f = f x := by
+  have h := StrongConvexOn.isMinOn_of_fderiv_eq_zero h_conv (h_diff x) h_stat hm (mem_univ x)
+  have hmin : IsMinOn f univ x := h.1
+  have h_lb : ∀ y : E, f x ≤ f y := by
+    intro y
+    exact hmin (mem_univ y)
+  have h_le_inf : f x ≤ iInf f := le_ciInf h_lb
+  have h_bdd : BddBelow (Set.range f) :=
+    ⟨f x, by
+      rintro _ ⟨y, rfl⟩
+      exact h_lb y⟩
+  have h_inf_le : iInf f ≤ f x := ciInf_le h_bdd x
+  have h_eq : iInf f = f x := by linarith [h_le_inf, h_inf_le]
+  exact ⟨hmin, h_eq⟩
+
+
+/-
+Strong convexity midpoint bound: the distance between any two points is controlled
+  by the average of their function values minus the infimum.
+-/
+omit [CompleteSpace E] in
+lemma StrongConvexOn.midpoint_dist_bound
+    {f : E → ℝ} {μ : ℝ} (_ : 0 < μ)
+    (hSC : StrongConvexOn univ μ f)
+    (hbdd : BddBelow (Set.range f))
+    (x y : E) :
+    μ / 8 * ‖x - y‖ ^ 2 ≤ (f x + f y) / 2 - iInf f := by
+  -- By strong convexity definition (UniformConvexOn) with a = b = 1/2:
+  have h_midpoint : f ((1/2 : ℝ) • x + (1/2 : ℝ) • y) + μ / 2 * ‖x - y‖ ^ 2 * (1/2 * 1/2) ≤ (1/2 : ℝ) * f x + (1/2 : ℝ) * f y := by
+    have := hSC.2;
+    specialize this ( Set.mem_univ x ) ( Set.mem_univ y ) ( show 0 ≤ ( 1 / 2 : ℝ ) by norm_num ) ( show 0 ≤ ( 1 / 2 : ℝ ) by norm_num ) ( by norm_num ) ; norm_num at * ; linarith;
+  linarith [ show iInf f ≤ f ( ( 1 / 2 : ℝ ) • x + ( 1 / 2 : ℝ ) • y ) from ciInf_le hbdd _ ]
+
+/-
+A C¹ strongly convex function on all of E is bounded below.
+-/
+lemma StrongConvexOn.bddBelow_range
+    {f : E → ℝ} {μ : ℝ} (hμ : 0 < μ)
+    (hSC : StrongConvexOn univ μ f)
+    (hC1 : ContDiff ℝ 1 f) :
+    BddBelow (Set.range f) := by
+  have h_bdd_below : ∀ x₀ : E, ∃ C : ℝ, ∀ z : E, f z ≥ f x₀ - (1 / (2 * μ)) * ‖gradient f x₀‖ ^ 2 := by
+    intro x₀
+    have h_bdd_below : ∀ z : E, f z ≥ f x₀ + (fderiv ℝ f x₀) (z - x₀) + μ / 2 * ‖x₀ - z‖ ^ 2 := by
+      intro z
+      have h_bdd_below_step : f z ≥ f x₀ + fderiv ℝ f x₀ (z - x₀) + μ / 2 * ‖x₀ - z‖ ^ 2 := by
+        have h_diff : DifferentiableAt ℝ f x₀ := by
+          exact hC1.contDiffAt.differentiableAt ( by norm_num )
+        exact StronglyConvexOn.add_fderiv_le hSC h_diff trivial trivial;
+      exact h_bdd_below_step;
+    -- By definition of $fderiv$, we know that $(fderiv ℝ f x₀) (z - x₀) = ⟪gradient f x₀, z - x₀⟫$.
+    have h_fderiv : ∀ z : E, (fderiv ℝ f x₀) (z - x₀) = ⟪gradient f x₀, z - x₀⟫ := by
+      simp +decide [ gradient ];
+    -- By completing the square, we can rewrite the inequality as $f(z) \geq f(x₀) - \frac{1}{2\mu} \| \nabla f(x₀) \|^2$.
+    have h_complete_square : ∀ z : E, f z ≥ f x₀ - (1 / (2 * μ)) * ‖gradient f x₀‖ ^ 2 + (μ / 2) * ‖(z - x₀) + (1 / μ) • gradient f x₀‖ ^ 2 := by
+      intro z
+      specialize h_bdd_below z
+      rw [h_fderiv] at h_bdd_below
+      have h_complete_square : ‖z - x₀ + (1 / μ) • gradient f x₀‖ ^ 2 = ‖z - x₀‖ ^ 2 + 2 * (1 / μ) * ⟪gradient f x₀, z - x₀⟫ + (1 / μ) ^ 2 * ‖gradient f x₀‖ ^ 2 := by
+        convert norm_add_sq_real ( z - x₀ ) ( ( 1 / μ ) • gradient f x₀ ) using 1 ; ring_nf!; simp +decide [inner_smul_right, norm_smul] ; ring_nf!;
+        rw [ real_inner_comm, abs_of_pos hμ ] ; ring!;
+      simp_all +decide [ norm_sub_rev ];
+      convert h_bdd_below using 1 ; ring_nf;
+      simpa [ sq, mul_assoc, hμ.ne' ] using by ring;
+    exact ⟨ 0, fun z => le_trans ( le_add_of_nonneg_right <| by positivity ) ( h_complete_square z ) ⟩;
+  exact ⟨ _, Set.forall_mem_range.2 fun z => h_bdd_below 0 |> Classical.choose_spec |> fun h => h z ⟩
+
+/-
+A C¹ strongly convex function on a complete Hilbert space attains its infimum;
+  i.e., it has a global minimizer.
+-/
+theorem StrongConvexOn.exists_minimizer
+    {f : E → ℝ} {μ : ℝ} (hμ : 0 < μ)
+    (hC1 : ContDiff ℝ 1 f)
+    (hSC : StrongConvexOn univ μ f) :
+    ∃ xstar : E, IsMinOn f univ xstar := by
+  -- By definition of strong convexity, f is bounded below.
+  have h_bdd_below : BddBelow (Set.range f) := by
+    exact StrongConvexOn.bddBelow_range hμ hSC hC1
+  -- Construct a minimizing sequence: for each n : ℕ, use `exists_lt_of_ciInf_lt` to get xₙ with f(xₙ) < iInf f + 1/(n+1).
+  have h_min_seq : ∃ (x : ℕ → E), ∀ n, f (x n) < iInf f + 1 / (n + 1) := by
+    exact ⟨ fun n => Classical.choose ( exists_lt_of_ciInf_lt ( show iInf f < iInf f + 1 / ( n + 1 ) from lt_add_of_pos_right _ <| by positivity ) ), fun n => Classical.choose_spec ( exists_lt_of_ciInf_lt ( show iInf f < iInf f + 1 / ( n + 1 ) from lt_add_of_pos_right _ <| by positivity ) ) ⟩;
+  -- Show the sequence is Cauchy: for n, m, use `StrongConvexOn.midpoint_dist_bound` to get μ/8 * ‖xₙ - xₘ‖² ≤ (f(xₙ) + f(xₘ))/2 - iInf f. Since f(xₙ), f(xₘ) < iInf f + 1/(n+1) + 1/(m+1), the RHS → 0. Use Metric.cauchySeq_iff or cauchySeq_of_le_geometric or show CauchySeq directly.
+  obtain ⟨x, hx⟩ := h_min_seq
+  have h_cauchy : CauchySeq x := by
+    have h_cauchy : ∀ n m : ℕ, μ / 8 * ‖x n - x m‖ ^ 2 ≤ (f (x n) + f (x m)) / 2 - iInf f := by
+      intro n m;
+      apply_rules [ StrongConvexOn.midpoint_dist_bound ];
+    have h_cauchy : ∀ n m : ℕ, ‖x n - x m‖ ^ 2 ≤ (8 / μ) * ((1 / (n + 1) + 1 / (m + 1)) / 2) := by
+      intro n m; rw [ div_mul_eq_mul_div, le_div_iff₀ ] <;> nlinarith [ h_cauchy n m, hx n, hx m ] ;
+    fapply cauchySeq_of_le_tendsto_0';
+    use fun n => Real.sqrt ( 8 / μ * ( ( 1 / ( n + 1 ) + 1 / ( n + 1 ) ) / 2 ) );
+    · intro n m hnm; rw [ dist_eq_norm ] ; exact Real.le_sqrt_of_sq_le ( le_trans ( h_cauchy n m ) ( by gcongr ) ) ;
+    · exact le_trans ( Filter.Tendsto.sqrt <| tendsto_const_nhds.mul <| Filter.Tendsto.div_const ( Filter.Tendsto.add ( tendsto_one_div_add_atTop_nhds_zero_nat ) ( tendsto_one_div_add_atTop_nhds_zero_nat ) ) _ ) ( by norm_num );
+  obtain ⟨ xstar, hxstar ⟩ := cauchySeq_tendsto_of_complete h_cauchy;
+  -- By continuity of $f$, we have $f(xstar) = \lim_{n \to \infty} f(x_n) = \inf f$.
+  have h_cont : f xstar = iInf f := by
+    refine' tendsto_nhds_unique ( hC1.continuous.continuousAt.tendsto.comp hxstar ) ( tendsto_order.2 ⟨ _, _ ⟩ );
+    · exact fun a ha => Filter.Eventually.of_forall fun n => lt_of_lt_of_le ha ( ciInf_le h_bdd_below _ );
+    · exact fun a ha => by filter_upwards [ Filter.eventually_gt_atTop ⌈ ( a - iInf f ) ⁻¹⌉₊ ] with n hn using lt_of_lt_of_le ( hx n ) ( by nlinarith [ Nat.ceil_le.mp hn.le, mul_inv_cancel₀ ( by linarith : ( a - iInf f ) ≠ 0 ), one_div_mul_cancel ( by linarith : ( n : ℝ ) + 1 ≠ 0 ) ] ) ;
+  exact ⟨ xstar, fun y hy => h_cont ▸ ciInf_le h_bdd_below y ⟩
+
+/-
+For a C¹ strongly convex function, the quadratic growth condition holds at any minimizer:
+    `μ / 2 * ‖y - x*‖² ≤ f y - f x*`.
+-/
+omit [CompleteSpace E] in
+lemma StrongConvexOn.quadratic_growth_at_minimizer
+    {f : E → ℝ} {μ : ℝ}
+    (hSC : StrongConvexOn univ μ f)
+    (hC1 : ContDiff ℝ 1 f)
+    {xstar : E} (hmin : IsMinOn f univ xstar) (y : E) :
+    μ / 2 * ‖y - xstar‖ ^ 2 ≤ f y - f xstar := by
+  have h_fderiv_zero : fderiv ℝ f xstar = 0 :=
+    IsMinOn.fderiv_eq_zero_of_isMinOn_univ (f := f) hmin
+  have h_strong_convex :
+      f y ≥ f xstar + fderiv ℝ f xstar (y - xstar) + μ / 2 * ‖xstar - y‖ ^ 2 := by
+    exact StronglyConvexOn.add_fderiv_le hSC (hC1.contDiffAt.differentiableAt (by norm_num))
+      (by simp) (by simp)
+  rw [h_fderiv_zero] at h_strong_convex
+  simp_all +decide [norm_sub_rev]
+  linarith
 
 section HessianStrongConvexity
 
