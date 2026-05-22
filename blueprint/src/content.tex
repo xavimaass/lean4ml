@@ -1498,21 +1498,55 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
   by the usual bounding arguments (show $f(x)\le iInf f$ and $iInf f \le f(x)$ using bounded-below).
 \end{proof}
 
+\begin{lemma}[Quadratic lower bound at a point]\label{lem:quadratic_lower_bound_at_point}
+  \lean{Lean4ML.Optimization.StrongConvexOn.quadratic_lower_bound_at_point}
+  \leanok{}
+  \uses{lem:strong_convex_lower_bound,lem:norm_add_smul_sq}
+  If $f$ is strongly convex on $E$ with modulus $m > 0$ and Fr\'echet differentiable at $x \in E$,
+  then for all $z \in E$:
+  \[
+    f(z) \;\ge\; f(x) - \frac{1}{2m}\|\nabla f(x)\|^2.
+  \]
+\end{lemma}
+
+\begin{proof}
+  \leanok{}
+  From the first-order lower bound (Lemma~\ref{lem:strong_convex_lower_bound}):
+  \[
+    f(z) \;\ge\; f(x) + \langle \nabla f(x), z - x\rangle + \frac{m}{2}\|z - x\|^2.
+  \]
+  Complete the square using $0 \le \|\nabla f(x) + m(z-x)\|^2 = \|\nabla f(x)\|^2 + 2m\langle \nabla f(x), z - x\rangle + m^2\|z-x\|^2$.
+  Algebraic manipulation yields the claimed inequality.
+\end{proof}
+
+\begin{lemma}[Strongly convex functions are bounded below]\label{lem:StrongConvexOn_bddBelow_from_differentiable}
+  \lean{Lean4ML.Optimization.StrongConvexOn.bddBelow_from_differentiable}
+  \leanok{}
+  \uses{lem:quadratic_lower_bound_at_point}
+  If $f$ is strongly convex on $E$ with modulus $m > 0$ and Fr\'echet differentiable on $E$,
+  then the range of $f$ is bounded below.
+\end{lemma}
+
+\begin{proof}
+  \leanok{}
+  Pick any point $x_0 \in E$. By Lemma~\ref{lem:quadratic_lower_bound_at_point},
+  \[
+    f(z) \ge f(x_0) - \frac{1}{2m}\|\nabla f(x_0)\|^2 \quad \text{for all } z \in E.
+  \]
+  Thus the range of $f$ is bounded below by this constant.
+\end{proof}
+
 \begin{lemma}[Strongly convex $C^1$ functions are bounded below]\label{lem:StrongConvexOn_bddBelow_range}
   \lean{Lean4ML.Optimization.StrongConvexOn.bddBelow_range}
   \leanok{}
-  \uses{thm:StrongConvexOn_globallyPL}
+  \uses{lem:StrongConvexOn_bddBelow_from_differentiable}
   If $f$ is strongly convex on $E$ with modulus $\mu>0$ and $f\in C^1$, then the range of $f$ is bounded below.
 \end{lemma}
 
 \begin{proof}
   \leanok{}
-  This is exactly the bounded-below conclusion extracted from the proof of
-  Theorem~\ref{thm:StrongConvexOn_globallyPL}. For each $x_0\in E$, the strong convexity inequality yields a uniform lower bound of the form
-  \[
-    f(z) \ge f(x_0) - \frac{1}{2\mu}\|\nabla f(x_0)\|^2 \quad \text{for all } z\in E,
-  \]
-  so choosing any $x_0$ gives a global lower bound for the range of $f$.
+  Extract the Differentiable instance from the $C^1$ assumption and apply
+  Lemma~\ref{lem:StrongConvexOn_bddBelow_from_differentiable}.
 \end{proof}
 
 \begin{lemma}[Midpoint distance bound]\label{lem:midpoint_dist_bound}
@@ -1753,7 +1787,7 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
 \begin{theorem}[Strong convexity $\Rightarrow$ global PL]\label{thm:StrongConvexOn_globallyPL}
   \lean{Lean4ML.Optimization.StrongConvexOn.globallyPL}
   \leanok{}
-  \uses{def:strong_convex_fn,def:GloballyPL,lem:strong_convex_lower_bound,lem:norm_add_smul_sq}
+  \uses{def:strong_convex_fn,def:GloballyPL,lem:quadratic_lower_bound_at_point}
   If $f$ is strongly convex on $E$ with modulus $m > 0$ and Fr\'echet
   differentiable on $E$, then $f$ is globally $m$-PL:
   \[
@@ -1763,21 +1797,13 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
 
 \begin{proof}
   \leanok{}
-  Fix $x$ and set $g := \nabla f(x)$. By the first-order lower bound
-  (Lemma~\ref{lem:strong_convex_lower_bound}), for every $z \in E$,
+  Fix $x$ and set $g := \nabla f(x)$. By Lemma~\ref{lem:quadratic_lower_bound_at_point},
+  for every $z \in E$:
   \[
-    f(z) \;\ge\; f(x) + \langle g,\, z - x\rangle + \tfrac{m}{2}\,\|z - x\|^2.
+    f(x) - \frac{1}{2m}\|g\|^2 \le f(z).
   \]
-  Expanding $0 \le \|g + m(z-x)\|^2$ via Lemma~\ref{lem:norm_add_smul_sq} gives
-  \[
-    0 \;\le\; \|g\|^2 + 2m\,\langle g,\, z-x\rangle + m^2\,\|z-x\|^2.
-  \]
-  Multiplying the first inequality by $2m > 0$ and adding to the second yields
-  \[
-    f(x) - \tfrac{1}{2m}\,\|g\|^2 \;\le\; f(z) \quad \text{for all } z \in E.
-  \]
-  Hence $f$ is bounded below and $\inf f \ge f(x) - \tfrac{1}{2m}\|g\|^2$,
-  which rearranges to $\|g\|^2 \ge 2m\,(f(x) - \inf f)$.
+  Therefore $f$ is bounded below and $\inf f \ge f(x) - \frac{1}{2m}\|g\|^2$.
+  Rearranging this inequality yields $\|g\|^2 \ge 2m\,(f(x) - \inf f)$ as required.
 \end{proof}
 
 
@@ -1795,7 +1821,7 @@ the trajectory itself converges to the unique global minimizer.
 \begin{theorem}[Energy convergence under strong convexity]\label{thm:gradientFlow_strongConvex_tendsto}
   \lean{Lean4ML.Optimization.gradientFlow_strongConvex_tendsto}
   \leanok{}
-  \uses{def:GloballyPL,Lean4ML.Optimization.StrongConvexOn.globallyPL,Lean4ML.Optimization.StrongConvexOn.bddBelow_range,Lean4ML.Optimization.gradientFlow_PL_tendsto}
+  \uses{def:GloballyPL,Lean4ML.Optimization.StrongConvexOn.globallyPL,Lean4ML.Optimization.StrongConvexOn.bddBelow_from_differentiable,Lean4ML.Optimization.gradientFlow_PL_tendsto}
   Let $f\in C^1$ be strongly convex on $E$ with modulus $\mu>0$, and let $\varphi$ be
   a global gradient flow for $f$. Then
   \[
@@ -1807,7 +1833,7 @@ the trajectory itself converges to the unique global minimizer.
   Strong convexity (with $\mu>0$) together with differentiability implies the
   global PL inequality by Theorem~\ref{thm:StrongConvexOn_globallyPL}.
   Moreover a $C^1$ strongly convex function is bounded below (see
-  Lemma~\ref{lem:StrongConvexOn_bddBelow_range}). Applying the convergence result
+  Lemma~\ref{lem:StrongConvexOn_bddBelow_from_differentiable}). Applying the convergence result
   for flows under the PL condition (Theorem~\ref{thm:gradientFlow_PL_tendsto})
   yields the claim.
 \end{proof}

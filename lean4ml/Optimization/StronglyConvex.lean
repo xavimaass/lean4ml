@@ -132,38 +132,58 @@ lemma StrongConvexOn.midpoint_dist_bound
   linarith [ show iInf f ≤ f ( ( 1 / 2 : ℝ ) • x + ( 1 / 2 : ℝ ) • y ) from ciInf_le hbdd _ ]
 
 /-
+For a strongly convex function with local gradient information, any point provides
+a uniform lower bound on the entire function.
+-/
+lemma StrongConvexOn.quadratic_lower_bound_at_point
+    (h_conv : StrongConvexOn univ m f)
+    (h_diff : DifferentiableAt ℝ f x)
+    (hm : 0 < m) :
+    ∀ z : E, f x - 1 / (2 * m) * ‖gradient f x‖ ^ 2 ≤ f z := by
+  intro z
+  set g := gradient f x
+  have h_two_m_pos : (0:ℝ) < 2 * m := by linarith
+  -- From strong convexity: f(z) ≥ f(x) + ⟨∇f(x), z-x⟩ + m/2 ‖x-z‖²
+  have h_fo_z : f x + fderiv ℝ f x (z - x) + m / 2 * ‖x - z‖ ^ 2 ≤ f z :=
+    StronglyConvexOn.add_fderiv_le h_conv h_diff (mem_univ x) (mem_univ z)
+  -- Express fderiv in terms of gradient
+  have h_inner : fderiv ℝ f x (z - x) = ⟪g, z - x⟫ := by simp [g, gradient]
+  rw [h_inner, norm_sub_rev x z] at h_fo_z
+  -- Complete the square using ‖g + m•(z-x)‖² ≥ 0
+  have h_sq_expanded : (0:ℝ) ≤ ‖g‖ ^ 2 + 2 * m * ⟪g, z - x⟫ + m ^ 2 * ‖z - x‖ ^ 2 :=
+    (norm_add_smul_sq g (z - x) m) ▸ sq_nonneg _
+  -- Multiply h_fo_z by 2m and combine with h_sq_expanded
+  have h_fo_2m : 2 * m * f x + 2 * m * ⟪g, z - x⟫ + m ^ 2 * ‖z - x‖ ^ 2 ≤ 2 * m * f z := by
+    nlinarith [mul_le_mul_of_nonneg_left h_fo_z h_two_m_pos.le]
+  have h_combine : 2 * m * f x - ‖g‖ ^ 2 ≤ 2 * m * f z := by linarith
+  -- Divide by 2m to get the result
+  have h_div := (div_le_div_iff_of_pos_right h_two_m_pos).mpr h_combine
+  have h_eq1 : (2 * m * f x - ‖g‖ ^ 2) / (2 * m) = f x - 1 / (2 * m) * ‖g‖ ^ 2 := by field_simp
+  have h_eq2 : (2 * m * f z) / (2 * m) = f z := by field_simp
+  linarith [h_div, h_eq1, h_eq2]
+
+/-
+A strongly convex differentiable function is bounded below.
+-/
+lemma StrongConvexOn.bddBelow_from_differentiable
+    (h_conv : StrongConvexOn univ m f)
+    (h_diff : Differentiable ℝ f)
+    (hm : 0 < m) :
+    BddBelow (Set.range f) := by
+  -- Pick any point x₀ and use its lower bound for the entire function
+  use f (0:E) - 1 / (2 * m) * ‖gradient f 0‖ ^ 2
+  rintro _ ⟨z, rfl⟩
+  exact StrongConvexOn.quadratic_lower_bound_at_point h_conv (h_diff 0) hm z
+
+/-
 A C¹ strongly convex function on all of E is bounded below.
 -/
 lemma StrongConvexOn.bddBelow_range
     {f : E → ℝ} {μ : ℝ} (hμ : 0 < μ)
     (hSC : StrongConvexOn univ μ f)
     (hC1 : ContDiff ℝ 1 f) :
-    BddBelow (Set.range f) := by
-  have h_bdd_below : ∀ x₀ : E, ∃ C : ℝ, ∀ z : E, f z ≥ f x₀ - (1 / (2 * μ)) * ‖gradient f x₀‖ ^ 2 := by
-    intro x₀
-    have h_bdd_below : ∀ z : E, f z ≥ f x₀ + (fderiv ℝ f x₀) (z - x₀) + μ / 2 * ‖x₀ - z‖ ^ 2 := by
-      intro z
-      have h_bdd_below_step : f z ≥ f x₀ + fderiv ℝ f x₀ (z - x₀) + μ / 2 * ‖x₀ - z‖ ^ 2 := by
-        have h_diff : DifferentiableAt ℝ f x₀ := by
-          exact hC1.contDiffAt.differentiableAt ( by norm_num )
-        exact StronglyConvexOn.add_fderiv_le hSC h_diff trivial trivial;
-      exact h_bdd_below_step;
-    -- By definition of $fderiv$, we know that $(fderiv ℝ f x₀) (z - x₀) = ⟪gradient f x₀, z - x₀⟫$.
-    have h_fderiv : ∀ z : E, (fderiv ℝ f x₀) (z - x₀) = ⟪gradient f x₀, z - x₀⟫ := by
-      simp +decide [ gradient ];
-    -- By completing the square, we can rewrite the inequality as $f(z) \geq f(x₀) - \frac{1}{2\mu} \| \nabla f(x₀) \|^2$.
-    have h_complete_square : ∀ z : E, f z ≥ f x₀ - (1 / (2 * μ)) * ‖gradient f x₀‖ ^ 2 + (μ / 2) * ‖(z - x₀) + (1 / μ) • gradient f x₀‖ ^ 2 := by
-      intro z
-      specialize h_bdd_below z
-      rw [h_fderiv] at h_bdd_below
-      have h_complete_square : ‖z - x₀ + (1 / μ) • gradient f x₀‖ ^ 2 = ‖z - x₀‖ ^ 2 + 2 * (1 / μ) * ⟪gradient f x₀, z - x₀⟫ + (1 / μ) ^ 2 * ‖gradient f x₀‖ ^ 2 := by
-        convert norm_add_sq_real ( z - x₀ ) ( ( 1 / μ ) • gradient f x₀ ) using 1 ; ring_nf!; simp +decide [inner_smul_right, norm_smul] ; ring_nf!;
-        rw [ real_inner_comm, abs_of_pos hμ ] ; ring!;
-      simp_all +decide [ norm_sub_rev ];
-      convert h_bdd_below using 1 ; ring_nf;
-      simpa [ sq, mul_assoc, hμ.ne' ] using by ring;
-    exact ⟨ 0, fun z => le_trans ( le_add_of_nonneg_right <| by positivity ) ( h_complete_square z ) ⟩;
-  exact ⟨ _, Set.forall_mem_range.2 fun z => h_bdd_below 0 |> Classical.choose_spec |> fun h => h z ⟩
+    BddBelow (Set.range f) :=
+  StrongConvexOn.bddBelow_from_differentiable hSC (hC1.differentiable (by norm_num)) hμ
 
 /-
 A C¹ strongly convex function on a complete Hilbert space attains its infimum;
@@ -494,48 +514,17 @@ theorem StrongConvexOn.globallyPL
     (hm : 0 < m) :
     GloballyPL f m hm := by
   intro x
-  set g := gradient f x with hg_def
-  have h_two_m_pos : (0:ℝ) < 2 * m := by linarith
-  -- Completing the square: for any z, f z ≥ f x - 1/(2m) ‖g‖².
-  have h_lower : ∀ z : E, f x - 1 / (2 * m) * ‖g‖ ^ 2 ≤ f z := by
-    intro z
-    have h_fo_z : f x + fderiv ℝ f x (z - x) + m / 2 * ‖x - z‖ ^ 2 ≤ f z :=
-      StronglyConvexOn.add_fderiv_le h_conv (h_diff x) (mem_univ _) (mem_univ _)
-    have h_inner : fderiv ℝ f x (z - x) = ⟪g, z - x⟫ := by
-      simp [hg_def, gradient]
-    have h_eq_sq : ‖x - z‖ ^ 2 = ‖z - x‖ ^ 2 := by rw [norm_sub_rev]
-    rw [h_inner, h_eq_sq] at h_fo_z
-    -- Expand ‖g + m•(z-x)‖² ≥ 0 via inner product.
-    have h_sq_nn : (0:ℝ) ≤ ‖g + m • (z - x)‖ ^ 2 := sq_nonneg _
-    have h_expand : ‖g + m • (z - x)‖ ^ 2
-        = ‖g‖ ^ 2 + 2 * m * ⟪g, z - x⟫ + m ^ 2 * ‖z - x‖ ^ 2 :=
-      norm_add_smul_sq g (z - x) m
-    have h_sq_expanded : (0:ℝ) ≤ ‖g‖ ^ 2 + 2 * m * ⟪g, z - x⟫ + m ^ 2 * ‖z - x‖ ^ 2 :=
-      h_expand ▸ h_sq_nn
-    -- Multiply h_fo_z by 2m and combine with h_sq_expanded to get
-    -- 2m * f x - ‖g‖² ≤ 2m * f z.
-    have h_fo_2m : 2 * m * f x + 2 * m * ⟪g, z - x⟫ + m ^ 2 * ‖z - x‖ ^ 2
-        ≤ 2 * m * f z := by
-      have := mul_le_mul_of_nonneg_left h_fo_z h_two_m_pos.le
-      nlinarith [this]
-    have h_combine : 2 * m * f x - ‖g‖ ^ 2 ≤ 2 * m * f z := by linarith
-    -- Divide by 2m.
-    have h_div := (div_le_div_iff_of_pos_right h_two_m_pos).mpr h_combine
-    have h_eq1 : (2 * m * f x - ‖g‖ ^ 2) / (2 * m) = f x - 1 / (2 * m) * ‖g‖ ^ 2 := by
-      field_simp
-    have h_eq2 : (2 * m * f z) / (2 * m) = f z := by
-      field_simp
-    linarith [h_div, h_eq1, h_eq2]
-  -- Bounded below ⇒ iInf f ≥ f x - 1/(2m) ‖g‖².
-  have h_bdd : BddBelow (Set.range f) :=
-    ⟨f x - 1 / (2 * m) * ‖g‖ ^ 2, by rintro _ ⟨z, rfl⟩; exact h_lower z⟩
-  have h_inf_ge : f x - 1 / (2 * m) * ‖g‖ ^ 2 ≤ iInf f :=
-    le_ciInf h_lower
-  -- Conclude: ‖g‖² ≥ 2m (f x - iInf f).
+  set g := gradient f x
+  -- Lower bound: f(z) ≥ f(x) - 1/(2m) ‖g‖² for all z
+  have h_lower := StrongConvexOn.quadratic_lower_bound_at_point h_conv (h_diff x) hm
+  -- Apply infimum bound
+  have h_inf_ge := le_ciInf h_lower
+  -- From h_inf_ge, derive ‖g‖² ≥ 2m (f x - iInf f)
   show ‖g‖ ^ 2 ≥ 2 * m * (f x - iInf f)
-  have h_mul := mul_le_mul_of_nonneg_left h_inf_ge h_two_m_pos.le
-  have h_arith : 2 * m * (f x - 1 / (2 * m) * ‖g‖ ^ 2) = 2 * m * f x - ‖g‖ ^ 2 := by
-    field_simp
-  linarith [h_mul, h_arith]
+  have h1 : 2 * m * (f x - 1 / (2 * m) * ‖g‖ ^ 2) ≤ 2 * m * iInf f := by nlinarith [h_inf_ge]
+  have h2 : 2 * m * f x - ‖g‖ ^ 2 ≤ 2 * m * iInf f := by
+    field_simp at h1 ⊢
+    nlinarith [h1, hm]
+  nlinarith [h2]
 
 end HessianPL
