@@ -1,5 +1,6 @@
 import lean4ml.Optimization.Convex
 import lean4ml.Optimization.LSmooth
+import lean4ml.Optimization.NecessaryCondition
 import Mathlib.Analysis.Calculus.FDeriv.Symmetric
 import Mathlib.Analysis.Convex.Strong
 import Mathlib.Analysis.InnerProductSpace.Calculus
@@ -86,6 +87,159 @@ theorem StrongConvexOn.isMinOn_of_fderiv_eq_zero
   have h_eq' : x = y := by
     exact sub_eq_zero.mp ( norm_eq_zero.mp h_dist )
   exact h_eq'.symm
+
+/-
+Simple corollary: for a C¹ strongly convex function, any stationary point is a global minimizer
+and the infimum of f equals its value at that point.
+-/
+omit [CompleteSpace E] in
+theorem StrongConvexOn.isMinOn_of_stationary
+    (h_conv : StrongConvexOn univ m f)
+    (h_diff : Differentiable ℝ f)
+    (hm : 0 < m) {x : E}
+    (h_stat : fderiv ℝ f x = 0) :
+    IsMinOn f univ x ∧ iInf f = f x := by
+  have h := StrongConvexOn.isMinOn_of_fderiv_eq_zero h_conv (h_diff x) h_stat hm (mem_univ x)
+  have hmin : IsMinOn f univ x := h.1
+  have h_lb : ∀ y : E, f x ≤ f y := by
+    intro y
+    exact hmin (mem_univ y)
+  have h_le_inf : f x ≤ iInf f := le_ciInf h_lb
+  have h_bdd : BddBelow (Set.range f) :=
+    ⟨f x, by
+      rintro _ ⟨y, rfl⟩
+      exact h_lb y⟩
+  have h_inf_le : iInf f ≤ f x := ciInf_le h_bdd x
+  have h_eq : iInf f = f x := by linarith [h_le_inf, h_inf_le]
+  exact ⟨hmin, h_eq⟩
+
+
+/-
+Strong convexity midpoint bound: the distance between any two points is controlled
+  by the average of their function values minus the infimum.
+-/
+omit [CompleteSpace E] in
+lemma StrongConvexOn.midpoint_dist_bound
+    {f : E → ℝ} {μ : ℝ} (_ : 0 < μ)
+    (hSC : StrongConvexOn univ μ f)
+    (hbdd : BddBelow (Set.range f))
+    (x y : E) :
+    μ / 8 * ‖x - y‖ ^ 2 ≤ (f x + f y) / 2 - iInf f := by
+  -- By strong convexity definition (UniformConvexOn) with a = b = 1/2:
+  have h_midpoint : f ((1/2 : ℝ) • x + (1/2 : ℝ) • y) + μ / 2 * ‖x - y‖ ^ 2 * (1/2 * 1/2) ≤ (1/2 : ℝ) * f x + (1/2 : ℝ) * f y := by
+    have := hSC.2;
+    specialize this ( Set.mem_univ x ) ( Set.mem_univ y ) ( show 0 ≤ ( 1 / 2 : ℝ ) by norm_num ) ( show 0 ≤ ( 1 / 2 : ℝ ) by norm_num ) ( by norm_num ) ; norm_num at * ; linarith;
+  linarith [ show iInf f ≤ f ( ( 1 / 2 : ℝ ) • x + ( 1 / 2 : ℝ ) • y ) from ciInf_le hbdd _ ]
+
+/-
+For a strongly convex function with local gradient information, any point provides
+a uniform lower bound on the entire function.
+-/
+lemma StrongConvexOn.quadratic_lower_bound_at_point
+    (h_conv : StrongConvexOn univ m f)
+    (h_diff : DifferentiableAt ℝ f x)
+    (hm : 0 < m) :
+    ∀ z : E, f x - 1 / (2 * m) * ‖gradient f x‖ ^ 2 ≤ f z := by
+  intro z
+  set g := gradient f x
+  have h_two_m_pos : (0:ℝ) < 2 * m := by linarith
+  -- From strong convexity: f(z) ≥ f(x) + ⟨∇f(x), z-x⟩ + m/2 ‖x-z‖²
+  have h_fo_z : f x + fderiv ℝ f x (z - x) + m / 2 * ‖x - z‖ ^ 2 ≤ f z :=
+    StronglyConvexOn.add_fderiv_le h_conv h_diff (mem_univ x) (mem_univ z)
+  -- Express fderiv in terms of gradient
+  have h_inner : fderiv ℝ f x (z - x) = ⟪g, z - x⟫ := by simp [g, gradient]
+  rw [h_inner, norm_sub_rev x z] at h_fo_z
+  -- Complete the square using ‖g + m•(z-x)‖² ≥ 0
+  have h_sq_expanded : (0:ℝ) ≤ ‖g‖ ^ 2 + 2 * m * ⟪g, z - x⟫ + m ^ 2 * ‖z - x‖ ^ 2 :=
+    (norm_add_smul_sq g (z - x) m) ▸ sq_nonneg _
+  -- Multiply h_fo_z by 2m and combine with h_sq_expanded
+  have h_fo_2m : 2 * m * f x + 2 * m * ⟪g, z - x⟫ + m ^ 2 * ‖z - x‖ ^ 2 ≤ 2 * m * f z := by
+    nlinarith [mul_le_mul_of_nonneg_left h_fo_z h_two_m_pos.le]
+  have h_combine : 2 * m * f x - ‖g‖ ^ 2 ≤ 2 * m * f z := by linarith
+  -- Divide by 2m to get the result
+  have h_div := (div_le_div_iff_of_pos_right h_two_m_pos).mpr h_combine
+  have h_eq1 : (2 * m * f x - ‖g‖ ^ 2) / (2 * m) = f x - 1 / (2 * m) * ‖g‖ ^ 2 := by field_simp
+  have h_eq2 : (2 * m * f z) / (2 * m) = f z := by field_simp
+  linarith [h_div, h_eq1, h_eq2]
+
+/-
+A strongly convex differentiable function is bounded below.
+-/
+lemma StrongConvexOn.bddBelow_from_differentiable
+    (h_conv : StrongConvexOn univ m f)
+    (h_diff : Differentiable ℝ f)
+    (hm : 0 < m) :
+    BddBelow (Set.range f) := by
+  -- Pick any point x₀ and use its lower bound for the entire function
+  use f (0:E) - 1 / (2 * m) * ‖gradient f 0‖ ^ 2
+  rintro _ ⟨z, rfl⟩
+  exact StrongConvexOn.quadratic_lower_bound_at_point h_conv (h_diff 0) hm z
+
+/-
+A C¹ strongly convex function on all of E is bounded below.
+-/
+lemma StrongConvexOn.bddBelow_range
+    {f : E → ℝ} {μ : ℝ} (hμ : 0 < μ)
+    (hSC : StrongConvexOn univ μ f)
+    (hC1 : ContDiff ℝ 1 f) :
+    BddBelow (Set.range f) :=
+  StrongConvexOn.bddBelow_from_differentiable hSC (hC1.differentiable (by norm_num)) hμ
+
+/-
+A C¹ strongly convex function on a complete Hilbert space attains its infimum;
+  i.e., it has a global minimizer.
+-/
+theorem StrongConvexOn.exists_minimizer
+    {f : E → ℝ} {μ : ℝ} (hμ : 0 < μ)
+    (hC1 : ContDiff ℝ 1 f)
+    (hSC : StrongConvexOn univ μ f) :
+    ∃ xstar : E, IsMinOn f univ xstar := by
+  -- By definition of strong convexity, f is bounded below.
+  have h_bdd_below : BddBelow (Set.range f) := by
+    exact StrongConvexOn.bddBelow_range hμ hSC hC1
+  -- Construct a minimizing sequence: for each n : ℕ, use `exists_lt_of_ciInf_lt` to get xₙ with f(xₙ) < iInf f + 1/(n+1).
+  have h_min_seq : ∃ (x : ℕ → E), ∀ n, f (x n) < iInf f + 1 / (n + 1) := by
+    exact ⟨ fun n => Classical.choose ( exists_lt_of_ciInf_lt ( show iInf f < iInf f + 1 / ( n + 1 ) from lt_add_of_pos_right _ <| by positivity ) ), fun n => Classical.choose_spec ( exists_lt_of_ciInf_lt ( show iInf f < iInf f + 1 / ( n + 1 ) from lt_add_of_pos_right _ <| by positivity ) ) ⟩;
+  -- Show the sequence is Cauchy: for n, m, use `StrongConvexOn.midpoint_dist_bound` to get μ/8 * ‖xₙ - xₘ‖² ≤ (f(xₙ) + f(xₘ))/2 - iInf f. Since f(xₙ), f(xₘ) < iInf f + 1/(n+1) + 1/(m+1), the RHS → 0. Use Metric.cauchySeq_iff or cauchySeq_of_le_geometric or show CauchySeq directly.
+  obtain ⟨x, hx⟩ := h_min_seq
+  have h_cauchy : CauchySeq x := by
+    have h_cauchy : ∀ n m : ℕ, μ / 8 * ‖x n - x m‖ ^ 2 ≤ (f (x n) + f (x m)) / 2 - iInf f := by
+      intro n m;
+      apply_rules [ StrongConvexOn.midpoint_dist_bound ];
+    have h_cauchy : ∀ n m : ℕ, ‖x n - x m‖ ^ 2 ≤ (8 / μ) * ((1 / (n + 1) + 1 / (m + 1)) / 2) := by
+      intro n m; rw [ div_mul_eq_mul_div, le_div_iff₀ ] <;> nlinarith [ h_cauchy n m, hx n, hx m ] ;
+    fapply cauchySeq_of_le_tendsto_0';
+    use fun n => Real.sqrt ( 8 / μ * ( ( 1 / ( n + 1 ) + 1 / ( n + 1 ) ) / 2 ) );
+    · intro n m hnm; rw [ dist_eq_norm ] ; exact Real.le_sqrt_of_sq_le ( le_trans ( h_cauchy n m ) ( by gcongr ) ) ;
+    · exact le_trans ( Filter.Tendsto.sqrt <| tendsto_const_nhds.mul <| Filter.Tendsto.div_const ( Filter.Tendsto.add ( tendsto_one_div_add_atTop_nhds_zero_nat ) ( tendsto_one_div_add_atTop_nhds_zero_nat ) ) _ ) ( by norm_num );
+  obtain ⟨ xstar, hxstar ⟩ := cauchySeq_tendsto_of_complete h_cauchy;
+  -- By continuity of $f$, we have $f(xstar) = \lim_{n \to \infty} f(x_n) = \inf f$.
+  have h_cont : f xstar = iInf f := by
+    refine' tendsto_nhds_unique ( hC1.continuous.continuousAt.tendsto.comp hxstar ) ( tendsto_order.2 ⟨ _, _ ⟩ );
+    · exact fun a ha => Filter.Eventually.of_forall fun n => lt_of_lt_of_le ha ( ciInf_le h_bdd_below _ );
+    · exact fun a ha => by filter_upwards [ Filter.eventually_gt_atTop ⌈ ( a - iInf f ) ⁻¹⌉₊ ] with n hn using lt_of_lt_of_le ( hx n ) ( by nlinarith [ Nat.ceil_le.mp hn.le, mul_inv_cancel₀ ( by linarith : ( a - iInf f ) ≠ 0 ), one_div_mul_cancel ( by linarith : ( n : ℝ ) + 1 ≠ 0 ) ] ) ;
+  exact ⟨ xstar, fun y hy => h_cont ▸ ciInf_le h_bdd_below y ⟩
+
+/-
+For a C¹ strongly convex function, the quadratic growth condition holds at any minimizer:
+    `μ / 2 * ‖y - x*‖² ≤ f y - f x*`.
+-/
+omit [CompleteSpace E] in
+lemma StrongConvexOn.quadratic_growth_at_minimizer
+    {f : E → ℝ} {μ : ℝ}
+    (hSC : StrongConvexOn univ μ f)
+    (hC1 : ContDiff ℝ 1 f)
+    {xstar : E} (hmin : IsMinOn f univ xstar) (y : E) :
+    μ / 2 * ‖y - xstar‖ ^ 2 ≤ f y - f xstar := by
+  have h_fderiv_zero : fderiv ℝ f xstar = 0 :=
+    IsMinOn.fderiv_eq_zero_of_isMinOn_univ (f := f) hmin
+  have h_strong_convex :
+      f y ≥ f xstar + fderiv ℝ f xstar (y - xstar) + μ / 2 * ‖xstar - y‖ ^ 2 := by
+    exact StronglyConvexOn.add_fderiv_le hSC (hC1.contDiffAt.differentiableAt (by norm_num))
+      (by simp) (by simp)
+  rw [h_fderiv_zero] at h_strong_convex
+  simp_all +decide [norm_sub_rev]
+  linarith
 
 section HessianStrongConvexity
 
@@ -360,48 +514,17 @@ theorem StrongConvexOn.globallyPL
     (hm : 0 < m) :
     GloballyPL f m hm := by
   intro x
-  set g := gradient f x with hg_def
-  have h_two_m_pos : (0:ℝ) < 2 * m := by linarith
-  -- Completing the square: for any z, f z ≥ f x - 1/(2m) ‖g‖².
-  have h_lower : ∀ z : E, f x - 1 / (2 * m) * ‖g‖ ^ 2 ≤ f z := by
-    intro z
-    have h_fo_z : f x + fderiv ℝ f x (z - x) + m / 2 * ‖x - z‖ ^ 2 ≤ f z :=
-      StronglyConvexOn.add_fderiv_le h_conv (h_diff x) (mem_univ _) (mem_univ _)
-    have h_inner : fderiv ℝ f x (z - x) = ⟪g, z - x⟫ := by
-      simp [hg_def, gradient]
-    have h_eq_sq : ‖x - z‖ ^ 2 = ‖z - x‖ ^ 2 := by rw [norm_sub_rev]
-    rw [h_inner, h_eq_sq] at h_fo_z
-    -- Expand ‖g + m•(z-x)‖² ≥ 0 via inner product.
-    have h_sq_nn : (0:ℝ) ≤ ‖g + m • (z - x)‖ ^ 2 := sq_nonneg _
-    have h_expand : ‖g + m • (z - x)‖ ^ 2
-        = ‖g‖ ^ 2 + 2 * m * ⟪g, z - x⟫ + m ^ 2 * ‖z - x‖ ^ 2 :=
-      norm_add_smul_sq g (z - x) m
-    have h_sq_expanded : (0:ℝ) ≤ ‖g‖ ^ 2 + 2 * m * ⟪g, z - x⟫ + m ^ 2 * ‖z - x‖ ^ 2 :=
-      h_expand ▸ h_sq_nn
-    -- Multiply h_fo_z by 2m and combine with h_sq_expanded to get
-    -- 2m * f x - ‖g‖² ≤ 2m * f z.
-    have h_fo_2m : 2 * m * f x + 2 * m * ⟪g, z - x⟫ + m ^ 2 * ‖z - x‖ ^ 2
-        ≤ 2 * m * f z := by
-      have := mul_le_mul_of_nonneg_left h_fo_z h_two_m_pos.le
-      nlinarith [this]
-    have h_combine : 2 * m * f x - ‖g‖ ^ 2 ≤ 2 * m * f z := by linarith
-    -- Divide by 2m.
-    have h_div := (div_le_div_iff_of_pos_right h_two_m_pos).mpr h_combine
-    have h_eq1 : (2 * m * f x - ‖g‖ ^ 2) / (2 * m) = f x - 1 / (2 * m) * ‖g‖ ^ 2 := by
-      field_simp
-    have h_eq2 : (2 * m * f z) / (2 * m) = f z := by
-      field_simp
-    linarith [h_div, h_eq1, h_eq2]
-  -- Bounded below ⇒ iInf f ≥ f x - 1/(2m) ‖g‖².
-  have h_bdd : BddBelow (Set.range f) :=
-    ⟨f x - 1 / (2 * m) * ‖g‖ ^ 2, by rintro _ ⟨z, rfl⟩; exact h_lower z⟩
-  have h_inf_ge : f x - 1 / (2 * m) * ‖g‖ ^ 2 ≤ iInf f :=
-    le_ciInf h_lower
-  -- Conclude: ‖g‖² ≥ 2m (f x - iInf f).
+  set g := gradient f x
+  -- Lower bound: f(z) ≥ f(x) - 1/(2m) ‖g‖² for all z
+  have h_lower := StrongConvexOn.quadratic_lower_bound_at_point h_conv (h_diff x) hm
+  -- Apply infimum bound
+  have h_inf_ge := le_ciInf h_lower
+  -- From h_inf_ge, derive ‖g‖² ≥ 2m (f x - iInf f)
   show ‖g‖ ^ 2 ≥ 2 * m * (f x - iInf f)
-  have h_mul := mul_le_mul_of_nonneg_left h_inf_ge h_two_m_pos.le
-  have h_arith : 2 * m * (f x - 1 / (2 * m) * ‖g‖ ^ 2) = 2 * m * f x - ‖g‖ ^ 2 := by
-    field_simp
-  linarith [h_mul, h_arith]
+  have h1 : 2 * m * (f x - 1 / (2 * m) * ‖g‖ ^ 2) ≤ 2 * m * iInf f := by nlinarith [h_inf_ge]
+  have h2 : 2 * m * f x - ‖g‖ ^ 2 ≤ 2 * m * iInf f := by
+    field_simp at h1 ⊢
+    nlinarith [h1, hm]
+  nlinarith [h2]
 
 end HessianPL

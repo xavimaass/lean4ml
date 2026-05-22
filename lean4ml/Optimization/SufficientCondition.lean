@@ -208,7 +208,6 @@ lemma hessian_pd_local_lower_bound [FiniteDimensional ℝ E]
 if `∇f(x)=0` and the Hessian has a uniform quadratic-form lower bound on a ball,
 then `x` is a strict local minimizer. -/
 theorem strict_local_min_of_gradient_zero_hessian_uniform_lb
-  [FiniteDimensional ℝ E]
     (hC2 : ContDiff ℝ 2 f)
     (x : E)
     (hgrad : gradient f x = 0)

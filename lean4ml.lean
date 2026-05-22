@@ -1,5 +1,6 @@
 import lean4ml.Optimization.Convex
 import lean4ml.Optimization.Defs
+import lean4ml.Optimization.GF_StronglyConvex
 import lean4ml.Optimization.GradientFlow
 import lean4ml.Optimization.LSmooth
 import lean4ml.Optimization.LineMap

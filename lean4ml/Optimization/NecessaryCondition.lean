@@ -18,6 +18,16 @@ section NecessaryConditions
 
 variable (f : E → ℝ) (x : E)
 
+/-
+At a global minimizer of a differentiable function on all of E, fderiv vanishes.
+-/
+omit [CompleteSpace E] in
+lemma IsMinOn.fderiv_eq_zero_of_isMinOn_univ
+    {f : E → ℝ} {x : E}
+    (hmin : IsMinOn f univ x) :
+    fderiv ℝ f x = 0 := by
+  simpa using IsLocalMin.fderiv_eq_zero (hmin.isLocalMin Filter.univ_mem)
+
 theorem local_min_gradient_zero
     (hC1 : ContDiff ℝ 1 f)
     (hmin : IsLocalMin f x) :
