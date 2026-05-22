@@ -1264,6 +1264,66 @@ $$f(y) > f(x^*)$$
 This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
 \end{proof}
 
+\begin{theorem}[Stationary point is global minimizer and matches the infimum]\label{thm:isMinOn_of_stationary}
+  \lean{Lean4ML.Optimization.StrongConvexOn.isMinOn_of_stationary}
+  \leanok{}
+  \uses{thm:unique_minimizer_strong_convex}
+  If $f\in C^1$ is strongly convex on $E$ with modulus $m>0$ and $x$ is a stationary point
+  (i.e. $Df(x)=0$), then $x$ is the global minimizer and $\inf f = f(x)$.
+\end{theorem}
+\begin{proof}
+  \leanok{}
+  Apply Theorem~\ref{thm:unique_minimizer_strong_convex} to see that any stationary point is a global minimizer.
+  Since a minimizer's value is a lower bound of $f$, and the infimum is the greatest lower bound, equality follows
+  by the usual bounding arguments (show $f(x)\le iInf f$ and $iInf f \le f(x)$ using bounded-below).
+\end{proof}
+
+\begin{lemma}[Midpoint distance bound]\label{lem:midpoint_dist_bound}
+  \lean{Lean4ML.Optimization.StrongConvexOn.midpoint_dist_bound}
+  \leanok{}
+  \uses{}
+  If $f$ is strongly convex on $E$ with modulus $\mu>0$ and $f$ is bounded below, then for any $x,y\in E$,
+  \[
+    \frac{\mu}{8}\,\|x-y\|^2 \le \frac{f(x)+f(y)}{2} - \inf f.
+  \]
+\end{lemma}
+\begin{proof}
+  \leanok{}
+  Apply the strong convexity inequality at the midpoint $\tfrac12(x+y)$ (take $a=b=1/2$) to get an inequality
+  relating $f(\frac{x+y}{2})$, $f(x),f(y)$ and $\mu\|x-y\|^2$. Using $\inf f\le f(\frac{x+y}{2})$ and simple
+  algebra produces the claimed bound.
+\end{proof}
+
+\begin{theorem}[Existence of a minimizer for C¹ strongly convex functions]\label{thm:exists_minimizer_strong_convex}
+  \lean{Lean4ML.Optimization.StrongConvexOn.exists_minimizer}
+  \leanok{}
+  \uses{lem:midpoint_dist_bound}
+  If $f\in C^1$ is strongly convex on a complete Hilbert space $E$ with modulus $\mu>0$, then $f$ attains its infimum;
+  i.e. there exists $x^*\in E$ with $f(x^*)=\inf f$.
+\end{theorem}
+\begin{proof}
+  \leanok{}
+  Use a minimizing sequence $(x_n)$ with $f(x_n)\downarrow\inf f$. The midpoint distance bound
+  (Lemma~\ref{lem:midpoint_dist_bound}) gives a bound of the form $\|x_n-x_m\|^2\le C( f(x_n)+f(x_m) - 2\inf f)$,
+  which tends to $0$ as $n,m\to\infty$, so $(x_n)$ is Cauchy. Completeness yields a limit $x^*$, and continuity of $f$
+  (from $C^1$) implies $f(x^*)=\inf f$.
+\end{proof}
+
+\begin{lemma}[Quadratic growth at a minimizer]\label{lem:quadratic_growth_at_minimizer}
+  \lean{Lean4ML.Optimization.StrongConvexOn.quadratic_growth_at_minimizer}
+  \leanok{}
+  \uses{thm:isMinOn_of_stationary}
+  If $f\in C^1$ is strongly convex on $E$ with modulus $\mu>0$ and $x^*$ is a minimizer, then for all $y\in E$:
+  \[
+    \frac{\mu}{2}\,\|y-x^*\|^2 \le f(y)-f(x^*).
+  \]
+\end{lemma}
+\begin{proof}
+  \leanok{}
+  At a minimizer $x^*$ the derivative vanishes, so applying the first-order strong convexity bound
+  (Lemma~\ref{lem:strong_convex_lower_bound}) with $x=x^*$ yields the inequality after cancelling the derivative term.
+\end{proof}
+
 % --------------------------------------------------------------------
 % Lemma 2.9: Hessian characterization of strong convexity
 % --------------------------------------------------------------------
@@ -1457,4 +1517,64 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
   \]
   Hence $f$ is bounded below and $\inf f \ge f(x) - \tfrac{1}{2m}\|g\|^2$,
   which rearranges to $\|g\|^2 \ge 2m\,(f(x) - \inf f)$.
+\end{proof}
+
+
+% ====================================================================
+% Gradient flow for strongly convex functions (GF_StronglyConvex.lean)
+% ====================================================================
+
+\chapter{Gradient flow for strongly convex functions}\label{sec:GF_StronglyConvex}
+
+In this chapter we collect the consequences of strong convexity for gradient
+flows. The key observations are that strong convexity implies the Polyak-L\'ojasiewicz
+(PL) inequality (hence exponential decay of the energy gap along the flow), and that
+the trajectory itself converges to the unique global minimizer.
+
+\begin{theorem}[Energy convergence under strong convexity]\label{thm:gradientFlow_strongConvex_tendsto}
+  \lean{Lean4ML.Optimization.gradientFlow_strongConvex_tendsto}
+  \leanok{}
+  \uses{def:GloballyPL,Lean4ML.Optimization.StrongConvexOn.globallyPL,Lean4ML.Optimization.StrongConvexOn.bddBelow_range,Lean4ML.Optimization.gradientFlow_PL_tendsto}
+  Let $f\in C^1$ be strongly convex on $E$ with modulus $\mu>0$, and let $\varphi$ be
+  a global gradient flow for $f$. Then
+  \[
+    f(\varphi(t)) \to \inf f \quad\text{as } t\to\infty.
+  \]
+\end{theorem}
+\begin{proof}
+  \leanok{}
+  Strong convexity (with $\mu>0$) together with differentiability implies the
+  global PL inequality by Theorem~\ref{thm:StrongConvexOn_globallyPL} (Lean: \texttt{StrongConvexOn.globallyPL}).
+  Moreover a $C^1$ strongly convex function is bounded below (see
+  \texttt{StrongConvexOn.bddBelow_range}). Applying the convergence result
+  for flows under the PL condition (Theorem~\ref{thm:gradientFlow_PL_tendsto})
+  yields the claim.
+\end{proof}
+
+\begin{theorem}[Trajectory convergence to the unique minimizer]\label{thm:gradientFlow_strongConvex_trajectory_tendsto}
+  \lean{Lean4ML.Optimization.gradientFlow_strongConvex_trajectory_tendsto}
+  \leanok{}
+  \uses{Lean4ML.Optimization.StrongConvexOn.exists_minimizer,Lean4ML.Optimization.StrongConvexOn.quadratic_growth_at_minimizer,Lean4ML.Optimization.gradientFlow_strongConvex_tendsto}
+  Let $f\in C^1$ be strongly convex on $E$ with modulus $\mu>0$, and let $\varphi$ be
+  a global gradient flow for $f$. Then there exists a unique minimizer $x^*$ of $f$ and
+  the trajectory converges:
+  \[
+    \varphi(t) \to x^* \quad\text{as } t\to\infty.
+  \]
+\end{theorem}
+\begin{proof}
+  \leanok{}
+  By strong convexity and $C^1$ regularity, $f$ attains a unique global minimizer
+  $x^*$ (Lean: \texttt{StrongConvexOn.exists_minimizer} together with the uniqueness
+  provided by \texttt{StrongConvexOn.isMinOn_of_fderiv_eq_zero}). From
+  Theorem~\ref{thm:gradientFlow_strongConvex_tendsto} we know the energy along the
+  trajectory satisfies $f(\varphi(t))\to f(x^*)=\inf f$.
+
+  Strong convexity also yields quadratic growth around the minimizer: for all $t\ge 0$
+  we have
+  \[
+    \frac{\mu}{2}\|\varphi(t)-x^*\|^2 \le f(\varphi(t)) - f(x^*).
+  \]
+  Thus the vanishing of the energy gap $f(\varphi(t))-f(x^*)\to 0$ forces
+  $\|\varphi(t)-x^*\|^2\to 0$, hence $\varphi(t)\to x^*$ as claimed.
 \end{proof}
