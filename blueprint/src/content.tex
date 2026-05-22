@@ -57,6 +57,11 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   \]
   %This is a \texttt{simp} lemma using \texttt{lipschitzOnWith\_univ}.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  By definition, both sides assert that $\nabla f$ is $L$-Lipschitz at every pair of points in $E$;
+  $\texttt{LSmoothOn}$ on $\texttt{Set.univ}$ unfolds to the same statement.
+\end{proof}
 
 \begin{lemma}[Monotonicity under set inclusion]\label{lem:LSmoothOn_mono}
   \lean{Lean4ML.Optimization.LSmoothOn_mono}
@@ -64,6 +69,11 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   \uses{def:l_smooth_on}
   If $T \subseteq S$ and $f$ is $L$-smooth on $S$, then $f$ is $L$-smooth on $T$.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  The Lipschitz inequality $\|\nabla f(x)-\nabla f(y)\|\le L\|x-y\|$ is required for $x,y\in T$;
+  since $T\subseteq S$, the hypothesis on $S$ delivers it directly.
+\end{proof}
 
 \begin{definition}[Hessian]\label{def:hessian}
   \lean{Lean4ML.Optimization.hessian}
@@ -109,6 +119,12 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   \uses{}
   If $f$ is $C^1$, then $t \mapsto (Df(x+t p))p$ is continuous.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  The map $t\mapsto(x+tp,p)$ is continuous as a pair of continuous maps in $t$. Since $f\in C^1$,
+  the bilinear evaluation $(y,v)\mapsto (Df(y))v$ is continuous, and the composition yields
+  the required continuity.
+\end{proof}
 
 \begin{lemma}[Continuity of $t \mapsto \langle \nabla f(x+t p),p\rangle$]\label{lem:continuous_inner_gradient_line}
   \lean{Lean4ML.Optimization.continuous_inner_gradient_line}
@@ -128,6 +144,11 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   \uses{lem:continuous_inner_gradient_line}
   The map \(t ↦ ⟪∇f(x + t p), p⟫\) is integrable on any interval (by continuity).
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  By Lemma~\ref{lem:continuous_inner_gradient_line} the integrand is continuous, hence bounded on
+  any compact interval and therefore interval-integrable.
+\end{proof}
 
 \begin{lemma}[Chain rule along a line]\label{lem:hasDerivAt_comp_line}
   \lean{Lean4ML.Optimization.hasDerivAt_comp_line}
@@ -136,6 +157,11 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   If $f$ has Fr\'echet derivative at $x+t p$, then $\tau\mapsto f(x+\tau p)$ has derivative
   $(Df(x+t p))p$ at $\tau=t$.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  The map $\tau\mapsto x+\tau p$ has derivative $p$ at $\tau=t$. Composing with $f$ via the chain
+  rule gives derivative $Df(x+tp)\cdot p$ at $\tau=t$.
+\end{proof}
 
 \begin{lemma}[Convex segment stays in a convex set]\label{lem:Convex.add_smul_sub_mem_unit}
   \lean{Lean4ML.Optimization.Convex.add_smul_sub_mem_unit}
@@ -143,6 +169,10 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   \uses{}
   If $s$ is convex and $x,y\in s$, then $x+t(y-x)\in s$ for $t\in[0,1]$.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  Rewrite $x+t(y-x) = (1-t)x + ty$, which lies in $s$ by convexity since $1-t,t\ge 0$ and $(1-t)+t=1$.
+\end{proof}
 
 \begin{lemma}[Scaling of the Hessian quadratic form]\label{lem:hessian_inner_smul}
   \lean{Lean4ML.Optimization.hessian_inner_smul}
@@ -152,6 +182,12 @@ Still, these were added to our Lean project to simplify the proofs of more compl
     \langle \nabla^2 f(x)(\alpha p),\alpha p\rangle = \alpha^2\langle \nabla^2 f(x)p,p\rangle.
   \]
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  By linearity of $\nabla^2 f(x)$ and bilinearity of the inner product,
+  $\langle \nabla^2 f(x)(\alpha p), \alpha p\rangle = \alpha\langle\nabla^2 f(x)p, \alpha p\rangle
+  = \alpha\cdot\alpha\,\langle\nabla^2 f(x)p,p\rangle = \alpha^2\langle \nabla^2 f(x)p,p\rangle$.
+\end{proof}
 
 \begin{lemma}[Hessian continuity along a line]\label{lem:continuous_hessian_line}
   \lean{Lean4ML.Optimization.continuous_hessian_line}
@@ -159,6 +195,11 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   \uses{def:hessian,lem:continuous_fderiv_line_apply}
   If $f\in C^2$, then $t\mapsto \nabla^2 f(x+t p)\,p$ is continuous.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  Since $f\in C^2$, the gradient $\nabla f$ is $C^1$ (Riesz duality composed with $Df$ preserves
+  smoothness). Applying Lemma~\ref{lem:continuous_fderiv_line_apply} to $\nabla f$ gives the result.
+\end{proof}
 
 % --------------------------------------------------------------------
 % Core technical lemmas (Optimization/LSmooth.lean)
@@ -189,6 +230,11 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   \]
   %Lean uses \texttt{real\_inner\_le\_norm} and \texttt{ContinuousLinearMap.le\_opNorm}.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  By Cauchy--Schwarz, $\langle Ap,p\rangle \le \|Ap\|\,\|p\|$, and the operator-norm bound gives
+  $\|Ap\| \le \|A\|\,\|p\|$. Multiplying yields $\langle Ap,p\rangle \le \|A\|\,\|p\|^2$.
+\end{proof}
 
 \begin{lemma}[HasGradient everywhere for $C^1$]\label{lem:hasGradientAt_of_contDiff_one}
   \lean{Lean4ML.Optimization.hasGradientAt_of_contDiff_one}
@@ -197,6 +243,11 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   If $f\in C^1(E)$, then for every $z\in E$ the gradient exists. %we have
   %\texttt{HasGradientAt f (gradient f z) z}.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  $C^1$-regularity implies Fr\'echet differentiability at every $z$. Riesz duality then identifies
+  the derivative with an inner product against a unique element $\nabla f(z)\in E$.
+\end{proof}
 
 \begin{lemma}[Norm Lipschitz bound for the gradient]\label{lem:norm_gradient_sub_le}
   \lean{Lean4ML.Optimization.norm_gradient_sub_le}
@@ -206,6 +257,11 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   $\|\nabla f(x)-\nabla f(y)\|\le L\|x-y\|$.
   %Lean rewrites the \texttt{edist} statement of \texttt{LipschitzOnWith}.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  Direct from the definition of $L$-smoothness on $s$ (Definition~\ref{def:l_smooth_on}), unwrapping
+  the underlying \texttt{edist} formulation to a real-valued norm inequality.
+\end{proof}
 
 \begin{lemma}[Segment norm identity]\label{lem:norm_add_smul_sub_eq}
   \lean{Lean4ML.Optimization.norm_add_smul_sub_eq}
@@ -214,6 +270,10 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   For $\gamma\ge 0$,
   $\|(x+\gamma(y-x))-x\|=\gamma\|y-x\|$.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  $\|(x+\gamma(y-x))-x\| = \|\gamma(y-x)\| = |\gamma|\,\|y-x\| = \gamma\,\|y-x\|$ since $\gamma\ge 0$.
+\end{proof}
 
 \begin{lemma}[Integral split-off constant term in an inner product]\label{lem:integral_inner_sub_const}
   \lean{Lean4ML.Optimization.integral_inner_sub_const}
@@ -222,6 +282,12 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   Lean lemma used to rewrite
   $\int \langle g(t)-c,w\rangle = \int \langle g(t),w\rangle - \int\langle c,w\rangle$.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  By linearity of the inner product in the first argument, $\langle g(t)-c,w\rangle =
+  \langle g(t),w\rangle - \langle c,w\rangle$. Both terms are interval-integrable (the first by
+  assumption, the second since it is constant), so linearity of the integral gives the identity.
+\end{proof}
 
 \begin{lemma}[Monotonicity of interval integrals (continuous case)]\label{lem:intervalIntegral_mono_of_continuous}
   \lean{Lean4ML.Optimization.intervalIntegral_mono_of_continuous}
@@ -230,6 +296,11 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   If $\varphi\le\psi$ on $[a,b]$ with $a\le b$ and both are continuous, then
   $\int_a^b\varphi \le \int_a^b\psi$.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  Continuity on $[a,b]$ ensures both functions are interval-integrable. Standard monotonicity of the
+  Lebesgue integral over the ordered interval $[a,b]$ then gives the inequality.
+\end{proof}
 
 \begin{lemma}[Inner-product linearity rewrite]\label{lem:inner_sub_left_eq}
   \lean{Lean4ML.Optimization.inner_sub_left_eq}
@@ -237,6 +308,10 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   \uses{}
   $\langle u,w\rangle - \langle v,w\rangle = \langle u-v,w\rangle$.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  Linearity of the inner product in its first argument.
+\end{proof}
 
 \chapter{Taylor's Theorem}\label{sec:TaylorsTheorem}
 % --------------------------------------------------------------------
@@ -362,6 +437,11 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   In particular, if $x,y\in s$ then
   $\langle \nabla f(y)-\nabla f(x),y-x\rangle\le L\|y-x\|^2$.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  Set $\gamma=1$ in Lemma~\ref{lem:lipschitz_gradient_pointwise} and note that
+  $x+1\cdot(y-x)=y$.
+\end{proof}
 
 \begin{theorem}[Quadratic upper bound from smoothness on a convex set]\label{thm:l_smooth_quadratic_upper_bound}
   \lean{Lean4ML.Optimization.l_smooth_quadratic_upper_bound}
@@ -512,6 +592,12 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   If $f\in C^2$ and $\nabla f(x)=0$, then
   $\nabla f(x+t p)=\int_0^t \nabla^2 f(x+s p)\,p\,ds$.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  Apply Theorem~\ref{thm:taylor_second_order_gradient} with direction $tp$ to get
+  $\nabla f(x+tp) - \nabla f(x) = \int_0^1 \nabla^2 f(x+u\,tp)(tp)\,du$. Using $\nabla f(x)=0$ and
+  the linear substitution $s=ut$, this becomes $\int_0^t \nabla^2 f(x+sp)\,p\,ds$.
+\end{proof}
 
 \begin{lemma}[Exact second-order Taylor expansion (double integral)]\label{lem:taylor_second_order_exact}
   \lean{Lean4ML.Optimization.taylor_second_order_exact}
@@ -522,6 +608,14 @@ Still, these were added to our Lean project to simplify the proofs of more compl
     f(x+p)-f(x)=\int_0^1\int_0^t \langle \nabla^2 f(x+s p)p,p\rangle\,ds\,dt.
   \]
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  By Theorem~\ref{thm:taylor_first_order},
+  $f(x+p)-f(x) = \int_0^1 \langle \nabla f(x+tp),p\rangle\,dt$.
+  Using Lemma~\ref{lem:gradient_line_eq_integral_hessian}, $\nabla f(x+tp) = \int_0^t \nabla^2 f(x+sp)p\,ds$.
+  Substituting and exchanging the inner product with the (continuous-linear) integral yields the
+  double-integral formula.
+\end{proof}
 
 \begin{theorem}[Local minimum $\Rightarrow$ Hessian PSD]\label{thm:local_min_hessian_psd}
   \lean{Lean4ML.Optimization.local_min_hessian_psd}
@@ -599,6 +693,14 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   $\exists \varepsilon>0,\ \forall p,\ \varepsilon\|p\|^2 \le \langle Hp,p\rangle$.
   Lean uses compactness of the sphere and \texttt{IsCompact.exists\_isLeast}.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  In finite dimensions the unit sphere $S=\{u : \|u\|=1\}$ is compact. The continuous function
+  $u\mapsto \langle Hu,u\rangle$ attains its minimum $\varepsilon$ on $S$, and $\varepsilon>0$ by positive
+  definiteness. For an arbitrary $p\ne 0$, writing $p = \|p\|\cdot(p/\|p\|)$ and using bilinearity
+  gives $\langle Hp,p\rangle = \|p\|^2 \langle H(p/\|p\|), p/\|p\|\rangle \ge \varepsilon\|p\|^2$. The
+  inequality holds trivially at $p=0$.
+\end{proof}
 
 \begin{lemma}[Continuity of Hessian map]\label{lem:continuous_hessian}
   \lean{Lean4ML.Optimization.continuous_hessian}
@@ -606,6 +708,11 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   \uses{def:hessian}
   If $f\in C^2$, then $y\mapsto \nabla^2 f(y)$ is continuous (Lean: \texttt{continuous\_fderiv} applied to $\nabla f$).
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  Since $f\in C^2$, the gradient $\nabla f$ is $C^1$, so its Fr\'echet derivative $y\mapsto D(\nabla f)(y) =
+  \nabla^2 f(y)$ is continuous.
+\end{proof}
 
 \begin{lemma}[Positive definite Hessian $\Rightarrow$ uniform lower bound on a ball]\label{lem:hessian_pd_local_lower_bound}
   \lean{Lean4ML.Optimization.hessian_pd_local_lower_bound}
@@ -718,6 +825,10 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
   \uses{def:GradientFlow}
   For $\varphi : \texttt{GradientFlow f x₀ T}$, we have $\varphi(0)=x_0$.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  This is the initial-condition field of the \texttt{GradientFlow} structure.
+\end{proof}
 
 \begin{lemma}[Differentiability of the trajectory on $\lbrack 0,T\rbrack$]\label{lem:GradientFlow.differentiableAt}
   \lean{Lean4ML.Optimization.GradientFlow.differentiableAt}
@@ -726,6 +837,10 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
   For $t\in[0,T]$, the map $t\mapsto \varphi(t)$ is differentiable at $t$.
   (Lean: \texttt{DifferentiableAt ℝ φ.trajectory t}.)
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  The ODE field gives $\texttt{HasDerivAt}$ at $t$, which immediately implies differentiability.
+\end{proof}
 
 \begin{lemma}[Derivative equals negative gradient]\label{lem:GradientFlow.deriv_eq}
   \lean{Lean4ML.Optimization.GradientFlow.deriv_eq}
@@ -737,6 +852,11 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
   \]
   (Lean: \texttt{deriv φ.trajectory t = -(gradient f (φ.trajectory t))}.)
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  The \texttt{HasDerivAt} field of the flow gives the derivative value $-\nabla f(\varphi(t))$;
+  uniqueness of the derivative identifies this with $\varphi'(t)$.
+\end{proof}
 
 % --------------------------------------------------------------------
 % Energy dissipation along the flow
@@ -840,6 +960,11 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
   \uses{}
   If $f\in C^1$, then $\nabla f$ is continuous by the definition of the gradient in terms of the Fr\'echet derivative.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  $\nabla f$ is the composition of the continuous Riesz isomorphism with $Df$, both continuous when
+  $f\in C^1$. Hence $\nabla f$ is continuous.
+\end{proof}
 
 \begin{lemma}[Norm bound from a Lipschitz gradient]
   \label{lem:gradient_norm_bound}
@@ -851,6 +976,11 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
     \|\nabla f(x)\| \le \|\nabla f(y)\| + \|\nabla f(x) - \nabla f(y)\| \le \|\nabla f(y)\| + L\|x-y\|.
   \]
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  By the triangle inequality, $\|\nabla f(x)\| \le \|\nabla f(y)\| + \|\nabla f(x)-\nabla f(y)\|$, and
+  the Lipschitz hypothesis gives $\|\nabla f(x)-\nabla f(y)\| \le L\|x-y\|$.
+\end{proof}
 
 \begin{theorem}[Local gradient flow existence]
   \label{thm:gradientFlow_local_existence}
@@ -861,6 +991,15 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
   and a gradient flow on $[0,\delta]$ starting at $x_0$.
   This is a direct application of the Picard--Lindelöf existence theorem for ODEs to the vector field $x \mapsto -\nabla f(x)$.
 \end{theorem}
+\begin{proof}
+  \leanok{}
+  The vector field $V(x):=-\nabla f(x)$ is continuous and $L$-Lipschitz. Setting $\varepsilon:=1/(4L+4)$,
+  $a := \|\nabla f(x_0)\|+1$ and $M := \|\nabla f(x_0)\|+L\cdot a$, one verifies the Picard--Lindel\"of
+  hypotheses on the time interval $[-\varepsilon,2\varepsilon]$ centred at $0$, in the closed ball
+  $\bar B(x_0,a)$, with bound $M$ and Lipschitz constant $L$. Picard--Lindel\"of then yields a
+  solution $\alpha$ with $\alpha(0)=x_0$ and $\alpha'(t)=V(\alpha(t))$ on $[0,\varepsilon]$. Taking
+  $\delta:=\varepsilon>0$ produces the desired flow.
+\end{proof}
 
 \begin{definition}[Concrete local flow constructor]
   \label{def:mk_local_flow}
@@ -882,6 +1021,13 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
   There exists $\delta>0$ (in fact $\delta=1/(4L+4)$) such that for \emph{every} $x_0$
   there is a gradient flow on $[0,\delta]$ starting from $x_0$.
 \end{theorem}
+\begin{proof}
+  \leanok{}
+  Take $\delta:=1/(4L+4)$, which is independent of $x_0$. The constants $a,M$ used in
+  Theorem~\ref{thm:gradientFlow_local_existence} depend on $x_0$, but the resulting time horizon
+  $\delta$ does not. Applying Definition~\ref{def:mk_local_flow} produces a flow on $[0,\delta]$ for
+  every choice of starting point.
+\end{proof}
 
 \begin{lemma}[Iterated extension]
   \label{lem:gradientFlow_iterate}
@@ -891,6 +1037,14 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
   From the local existence result (Theorem~\ref{thm:gradientFlow_local_existence}) with the uniform time step $\delta = 1/(4L+4)$,
   we can construct flows on $[0, n\delta]$ for any $n \in \mathbb{N}$ by repeatedly extending the flow at each time interval $[(k-1)\delta, k\delta]$.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  Induction on $n$. For $n=0$ restrict the uniform local flow to a single point (the trivial case).
+  For the inductive step, given a flow $\varphi$ on $[0,n\delta]$, apply
+  Theorem~\ref{thm:gradientFlow_local_existence_uniform} starting from $\varphi(n\delta)$ to obtain a
+  flow $\psi$ on $[0,\delta]$; chain them via Definition~\ref{def:gradientFlow_extend} to get a flow
+  on $[0,(n+1)\delta]$.
+\end{proof}
 
 % --------------------------------------------------------------------
 % Finite horizon existence
@@ -943,6 +1097,12 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
   If $\nabla f$ is $L$-Lipschitz and $T\ge 0$, then two gradient flows with the same initial condition
   must coincide on $[0,T]$.  This follows from the standard ODE uniqueness theorem applied to the Lipschitz vector field $x \mapsto -\nabla f(x)$.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  Both trajectories satisfy $\varphi'(t)=-\nabla f(\varphi(t))$ on $[0,T]$ with $\varphi(0)=x_0$.
+  Since $-\nabla f$ is $L$-Lipschitz on $E$, Gr\"onwall's inequality (the standard ODE uniqueness
+  argument) shows that the difference of the two trajectories vanishes on $[0,T]$.
+\end{proof}
 
 \begin{lemma}[Consistency at overlaps]
   \label{lem:flows_consistent_at}
@@ -953,6 +1113,13 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
   This follows from uniqueness: the two flows satisfy the same ODE with the same initial data,
   so they must coincide on the overlap.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  Without loss of generality assume $n\le m$. Restrict $\varphi(m)$ from $[0,m+1]$ to $[0,n+1]$
+  (Definition~\ref{def:gradientFlow_restrict}); both $\varphi(n)$ and the restriction now share the
+  initial condition $x_0$ on $[0,n+1]$. By Lemma~\ref{lem:gradientFlow_unique} they coincide on this
+  interval, hence in particular at $t$.
+\end{proof}
 
 \begin{lemma}[Local agreement of the glued global trajectory]
   \label{lem:global_traj_eventuallyEq}
@@ -963,6 +1130,13 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
   For each $t\ge 0$, near $t$ this trajectory agrees with the bounded flow $(\varphi(\lceil t\rceil)).\text{trajectory}$,
   so the derivative at $t$ transfers from the bounded flow.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  For $s$ in a small neighborhood of $t$, $\lceil s\rceil$ stays equal to $\lceil t\rceil$ or differs
+  by at most one within the common domain $[0,\lceil t\rceil+1]$. By
+  Lemma~\ref{lem:flows_consistent_at}, $\varphi(\lceil s\rceil)$ and $\varphi(\lceil t\rceil)$ agree
+  at $s$ on this overlap, so $x(s)=(\varphi(\lceil t\rceil))(s)$ in a neighborhood of $t$.
+\end{proof}
 
 \begin{theorem}[Global gradient flow existence for all $t\ge 0$]
   \label{thm:gradientFlowGlobal_existence}
@@ -1018,6 +1192,14 @@ $s \subseteq E$ is a convex set, and $x, y \in E$.
   If $f$ is convex on $s$ and $x \in s$ is a local minimizer of $f$ restricted to $s$,
   then $x$ is a global minimizer of $f$ on $s$.
 \end{theorem}
+\begin{proof}
+  \leanok{}
+  Suppose for contradiction that some $y\in s$ has $f(y)<f(x)$. By convexity, for any
+  $\alpha\in(0,1]$, $z_\alpha := (1-\alpha)x+\alpha y\in s$ and
+  $f(z_\alpha)\le(1-\alpha)f(x)+\alpha f(y) = f(x) - \alpha(f(x)-f(y)) < f(x)$.
+  Taking $\alpha\to 0^+$ places $z_\alpha$ in every neighborhood of $x$, contradicting local
+  minimality.
+\end{proof}
 
 \begin{theorem}[Set of minimizers is convex]\label{thm:minimizers_set_convex}
   \lean{Lean4ML.Optimization.ConvexOn.convex_minimizers_mathlib}
@@ -1215,6 +1397,14 @@ $s \subseteq E$ is a convex set, $m > 0$, and $x, y \in E$.
     \mathrm{ConvexOn}\ s\ \Bigl(x \mapsto f(x) - \tfrac{m}{2}\|x\|^2\Bigr).
   \]
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  Expanding $\|ax+by\|^2 = a\|x\|^2+b\|y\|^2 - ab\|x-y\|^2$ (valid when $a+b=1$, $a,b\ge0$),
+  one rewrites
+  \(g(ax+by) = a\,g(x) + b\,g(y) - \tfrac{m}{2}\bigl(a\|x\|^2 + b\|y\|^2 - \|ax+by\|^2\bigr)
+    + \cdots\),
+  showing $g$ is convex iff $f$ satisfies the modulated convexity inequality with constant $m$.
+\end{proof}
 
 % --------------------------------------------------------------------
 % First-order lower bound for strongly convex functions
@@ -1304,6 +1494,11 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
   \uses{}
   If $f \in C^2$, then $y \mapsto \nabla f(y)$ is in $C^1$.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  $\nabla f$ is the composition of the smooth Riesz isomorphism with $Df$. Since $f\in C^2$, $Df$
+  is $C^1$, hence $\nabla f$ is $C^1$.
+\end{proof}
 
 \begin{lemma}[Hessian as Fr\'echet derivative of the gradient]\label{lem:hasFDerivAt_gradient}
   \lean{Lean4ML.Optimization.hasFDerivAt_gradient}
@@ -1312,6 +1507,11 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
   If $f \in C^2$, then at every $x \in E$, the map $y \mapsto \nabla f(y)$ has Fr\'echet
   derivative $\nabla^2 f(x)$.
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  By Lemma~\ref{lem:gradient_contDiff_one}, $\nabla f$ is $C^1$, hence Fr\'echet differentiable at
+  every $x$. Its derivative is, by Definition~\ref{def:hessian}, exactly $\nabla^2 f(x)$.
+\end{proof}
 
 \begin{lemma}[Strong convexity $\Rightarrow$ Hessian lower bound]\label{lem:strongConvexOn_imp_hessian_lb}
   \lean{Lean4ML.Optimization.strongConvexOn_imp_hessian_lb}
@@ -1467,6 +1667,11 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
     \|a + r\,b\|^2 = \|a\|^2 + 2r\,\langle a, b\rangle + r^2\,\|b\|^2.
   \]
 \end{lemma}
+\begin{proof}
+  \leanok{}
+  Expand $\|a+rb\|^2 = \langle a+rb, a+rb\rangle$ using bilinearity and symmetry of the inner
+  product to get $\langle a,a\rangle + 2r\langle a,b\rangle + r^2\langle b,b\rangle$.
+\end{proof}
 
 \begin{theorem}[Strong convexity $\Rightarrow$ global PL]\label{thm:StrongConvexOn_globallyPL}
   \lean{Lean4ML.Optimization.StrongConvexOn.globallyPL}
