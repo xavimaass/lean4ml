@@ -962,79 +962,10 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
 
 
 % ====================================================================
-% Polyak--Łojasiewicz condition and convergence  (Optimization/GradientFlow.lean)
-% ====================================================================
-
-\chapter{Polyak--Łojasiewicz condition and convergence}\label{sec:PL}
-
-\begin{lemma}[Energy gap derivative and PL differential inequality]\label{lem:energyGap_hasDerivAt_and_le}
-  \lean{Lean4ML.Optimization.energyGap_hasDerivAt_and_le}
-  \leanok{}
-  \uses{def:GradientFlowGlobal,def:GloballyPL,lem:GradientFlow.hasDerivAt_energy}
-  Let $g(t):=f(\varphi(t))-\inf f$, where $\varphi$ is a global gradient flow.
-  If $f\in C^1$ and $f$ satisfies the global $\mu$-PL condition, then for every $t\ge 0$,
-  \[
-    g'(t)=-\|\nabla f(\varphi(t))\|^2
-    \quad\text{and}\quad
-    g'(t)\le -2\mu\,g(t).
-  \]
-\end{lemma}
-
-\begin{proof}
-  Differentiate $g(t)=f(\varphi(t))-\inf f$. The constant $\inf f$ contributes no derivative, and the chain rule
-  along the flow gives
-  \[
-    g'(t)=\frac{d}{dt}f(\varphi(t))=-\|\nabla f(\varphi(t))\|^2.
-  \]
-  The global PL inequality gives
-  \[
-    \|\nabla f(\varphi(t))\|^2\ge 2\mu\bigl(f(\varphi(t))-\inf f\bigr)=2\mu\,g(t),
-  \]
-  so multiplying by $-1$ yields $g'(t)\le -2\mu\,g(t)$.
-\end{proof}
-
-\begin{lemma}[Exponential decay of the energy gap]\label{lem:energyGap_exp_bound}
-  \lean{Lean4ML.Optimization.energyGap_exp_bound}
-  \leanok{}
-  \uses{lem:energyGap_hasDerivAt_and_le}
-  Under the same hypotheses, the energy gap satisfies
-  \[
-    f(\varphi(t)) - \inf f \le (f(x_0)-\inf f)\,e^{-2\mu t}
-  \]
-  for all $t\ge 0$.
-\end{lemma}
-
-\begin{proof}
-  Consider the auxiliary function
-  \[
-    h(t):=\bigl(f(\varphi(t))-\inf f\bigr)e^{2\mu t}.
-  \]
-  Using the previous lemma and the product rule, one finds that $h'(t)\le 0$ for $t\ge 0$, so $h$ is non-increasing.
-  Therefore $h(t)\le h(0)=f(x_0)-\inf f$, and multiplying by $e^{-2\mu t}$ gives the stated estimate.
-\end{proof}
-
-\begin{theorem}[Convergence of the gradient flow under the PL condition]\label{thm:gradientFlow_PL_tendsto}
-  \lean{Lean4ML.Optimization.gradientFlow_PL_tendsto}
-  \leanok{}
-  \uses{def:GloballyPL,lem:energyGap_exp_bound}
-  Assume in addition that $f$ is bounded below. Then along any global gradient flow,
-  \[
-    f(\varphi(t)) \to \inf f \quad \text{as } t\to\infty.
-  \]
-\end{theorem}
-
-\begin{proof}
-  The global PL estimate gives the upper bound from Lemma~\ref{lem:energyGap_exp_bound}. Since $f$ is bounded below,
-  we also have $f(\varphi(t)) - \inf f\ge 0$ for all $t\ge 0$.
-  The right-hand side is an exponentially decaying term, hence tends to $0$ as $t\to\infty$.
-  By squeezing, the energy gap converges to $0$, which is equivalent to $f(\varphi(t))\to \inf f$.
-\end{proof}
-
-% ====================================================================
 % Convexity Results  (Optimization/Convex.lean)
 % ====================================================================
 
-\section*{Convexity}\label{sec:convexity}
+\chapter{Convexity}\label{sec:convexity}
 
 Throughout this section, $E$ is a real normed space, $f : E \to \mathbb{R}$,
 $s \subseteq E$ is a convex set, and $x, y \in E$.
@@ -1146,7 +1077,77 @@ $s \subseteq E$ is a convex set, and $x, y \in E$.
   Since $Df(x) = 0$, the second term vanishes, giving $f(x) \le f(y)$ for all $y \in s$.
 \end{proof}
 
-\section*{Strong Convexity}\label{sec:strong_convexity}
+% ====================================================================
+% Polyak--Łojasiewicz condition and convergence  (Optimization/GradientFlow.lean)
+% ====================================================================
+
+\chapter{Polyak--Łojasiewicz condition and convergence}\label{sec:PL}
+
+\begin{lemma}[Energy gap derivative and PL differential inequality]\label{lem:energyGap_hasDerivAt_and_le}
+  \lean{Lean4ML.Optimization.energyGap_hasDerivAt_and_le}
+  \leanok{}
+  \uses{def:GradientFlowGlobal,def:GloballyPL,lem:GradientFlow.hasDerivAt_energy}
+  Let $g(t):=f(\varphi(t))-\inf f$, where $\varphi$ is a global gradient flow.
+  If $f\in C^1$ and $f$ satisfies the global $\mu$-PL condition, then for every $t\ge 0$,
+  \[
+    g'(t)=-\|\nabla f(\varphi(t))\|^2
+    \quad\text{and}\quad
+    g'(t)\le -2\mu\,g(t).
+  \]
+\end{lemma}
+
+\begin{proof}
+  Differentiate $g(t)=f(\varphi(t))-\inf f$. The constant $\inf f$ contributes no derivative, and the chain rule
+  along the flow gives
+  \[
+    g'(t)=\frac{d}{dt}f(\varphi(t))=-\|\nabla f(\varphi(t))\|^2.
+  \]
+  The global PL inequality gives
+  \[
+    \|\nabla f(\varphi(t))\|^2\ge 2\mu\bigl(f(\varphi(t))-\inf f\bigr)=2\mu\,g(t),
+  \]
+  so multiplying by $-1$ yields $g'(t)\le -2\mu\,g(t)$.
+\end{proof}
+
+\begin{lemma}[Exponential decay of the energy gap]\label{lem:energyGap_exp_bound}
+  \lean{Lean4ML.Optimization.energyGap_exp_bound}
+  \leanok{}
+  \uses{lem:energyGap_hasDerivAt_and_le}
+  Under the same hypotheses, the energy gap satisfies
+  \[
+    f(\varphi(t)) - \inf f \le (f(x_0)-\inf f)\,e^{-2\mu t}
+  \]
+  for all $t\ge 0$.
+\end{lemma}
+
+\begin{proof}
+  Consider the auxiliary function
+  \[
+    h(t):=\bigl(f(\varphi(t))-\inf f\bigr)e^{2\mu t}.
+  \]
+  Using the previous lemma and the product rule, one finds that $h'(t)\le 0$ for $t\ge 0$, so $h$ is non-increasing.
+  Therefore $h(t)\le h(0)=f(x_0)-\inf f$, and multiplying by $e^{-2\mu t}$ gives the stated estimate.
+\end{proof}
+
+\begin{theorem}[Convergence of the gradient flow under the PL condition]\label{thm:gradientFlow_PL_tendsto}
+  \lean{Lean4ML.Optimization.gradientFlow_PL_tendsto}
+  \leanok{}
+  \uses{def:GloballyPL,lem:energyGap_exp_bound}
+  Assume in addition that $f$ is bounded below. Then along any global gradient flow,
+  \[
+    f(\varphi(t)) \to \inf f \quad \text{as } t\to\infty.
+  \]
+\end{theorem}
+
+\begin{proof}
+  The global PL estimate gives the upper bound from Lemma~\ref{lem:energyGap_exp_bound}. Since $f$ is bounded below,
+  we also have $f(\varphi(t)) - \inf f\ge 0$ for all $t\ge 0$.
+  The right-hand side is an exponentially decaying term, hence tends to $0$ as $t\to\infty$.
+  By squeezing, the energy gap converges to $0$, which is equivalent to $f(\varphi(t))\to \inf f$.
+\end{proof}
+
+
+\chapter{Strong Convexity}\label{sec:strong_convexity}
 
 Throughout this section, $E$ is a real Hilbert space, $f : E \to \mathbb{R}$,
 $s \subseteq E$ is a convex set, $m > 0$, and $x, y \in E$.
