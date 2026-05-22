@@ -117,6 +117,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   If $f$ is $C^1$, then $t \mapsto \langle \nabla f(x+t p),p\rangle$ is continuous.
 \end{lemma}
 \begin{proof}
+  \leanok{}
   In Lean, simply rewrite $(Df(x+t p))p$ as $\langle \nabla f(x+t p),p\rangle$ using
   \texttt{HasGradientAt.fderiv\_apply}.
 \end{proof}
@@ -172,6 +173,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   %(Lean: \texttt{HasFDerivAt.le\_of\_lipschitzOn}.)
 \end{lemma}
 \begin{proof}
+  \leanok{}
   Simply by noting that for $y\neq x$ in the neighborhood, $\frac{|f(x)-f(y)|}{\|x-y\|} \leq L$,
   from where the limit definition of the derivative norm gives $\|Dg(x)\|\le L$.
 \end{proof}
@@ -252,6 +254,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   %Lean uses \texttt{intervalIntegral.integral\_eq\_sub\_of\_hasDerivAt}.
 \end{theorem}
 \begin{proof}
+  \leanok{}
   Let
   \(
     g(t) := f(x+t\,p)\quad (t\in\mathbb{R}).
@@ -289,6 +292,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   \]
 \end{theorem}
 \begin{proof}
+  \leanok{}
   Direct from Theorem~\ref{thm:taylor_first_order_vector}.
 \end{proof}
 
@@ -302,6 +306,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   \]
 \end{theorem}
 \begin{proof}
+  \leanok{}
   Direct from Theorem~\ref{thm:taylor_first_order_vector} applied to $\nabla f \in C^1$.
 \end{proof}
 
@@ -320,6 +325,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   \]
 \end{lemma}
 \begin{proof}
+  \leanok{}
   First, derive a norm bound from $L$-smoothness. Since $x\in s$ and
   $x+\gamma(y-x)\in s$, Lemma~\ref{lem:norm_gradient_sub_le} gives
   \[
@@ -368,6 +374,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 \end{theorem}
 
 \begin{proof}
+  \leanok{}
   Let $p:=y-x$.
   \begin{enumerate}
     \item Apply Theorem~\ref{thm:taylor_first_order} to obtain
@@ -395,6 +402,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
   \]
 \end{theorem}
 \begin{proof}
+  \leanok{}
   Let $y := x - \alpha \nabla f(x)$ and $p := y - x = -\alpha \nabla f(x)$.
 
   \textbf{Step 1:} Compute the inner product.
@@ -437,6 +445,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 \end{theorem}
 
 \begin{proof}
+  \leanok{}
   We need to show $\nabla f$ is $L$-Lipschitz globally.
 
   Since $\nabla f$ is Fr\'echet differentiable at every point $x$ with derivative $\nabla^2 f(x)$
@@ -454,6 +463,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 \end{theorem}
 
 \begin{proof}
+  \leanok{}
   Fix $x$ and $p$. By global $L$-smoothness, $\nabla f$ is $L$-Lipschitz on all of $E$.
 
   Apply Lemma~\ref{lem:opNorm_fderiv_le_of_lipschitz} to the gradient map: since $\nabla f$ is
@@ -484,6 +494,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 \end{theorem}
 
 \begin{proof}
+  \leanok{}
   By Lemma~\ref{lem:hasGradientAt_of_contDiff_one}, the gradient $\nabla f(x)$ exists at the local minimizer $x$.
 
   Since $x$ minimizes $f$ locally, the Fr\'echet derivative of $f$ at $x$ must vanish when applied to any direction.
@@ -520,6 +531,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 \end{theorem}
 
 \begin{proof}
+  \leanok{}
   We proceed by contradiction. First, by Theorem~\ref{thm:local_min_gradient_zero}, we may assume $\nabla f(x) = 0$.
 
   Suppose $\langle \nabla^2 f(x)p,p\rangle<0$ for some $p \neq 0$. Define $H(u):=\langle \nabla^2 f(x+u p)p,p\rangle$.
@@ -561,6 +573,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 \end{lemma}
 
 \begin{proof}
+  \leanok{}
   Start from the exact Taylor formula (Lemma~\ref{lem:taylor_second_order_exact}):
   \[
     f(x+p)-f(x)=\int_0^1\int_0^t \langle \nabla^2 f(x+s p)p,p\rangle\,ds\,dt.
@@ -603,6 +616,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 \end{lemma}
 
 \begin{proof}
+  \leanok{}
   Since $\nabla^2 f(x)$ is positive definite, Lemma~\ref{lem:inner_coercive_of_pd} provides $\varepsilon_0 > 0$ such that
   \[
     \varepsilon_0 \|p\|^2 \le \langle \nabla^2 f(x) p, p \rangle \quad \text{for all } p.
@@ -634,6 +648,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 \end{theorem}
 
 \begin{proof}
+  \leanok{}
   Let $U = B(x, \rho)$. For any $y \in U$ with $y \neq x$, set $p = y - x$. Then $\|p\| < \rho$ and
   $f(y) - f(x) = f(x+p) - f(x)$.
 
@@ -655,6 +670,7 @@ Still, these were added to our Lean project to simplify the proofs of more compl
 \end{theorem}
 
 \begin{proof}
+  \leanok{}
   By hypothesis, $f \in C^2$ and $\nabla f(x) = 0$. The Hessian $\nabla^2 f(x)$ is positive definite.
 
   Lemma~\ref{lem:hessian_pd_local_lower_bound} guarantees that there exist $\varepsilon > 0$ and $\rho > 0$ such that
@@ -734,7 +750,10 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
   \[
     \frac{d}{dt}\, f(\varphi(t)) = -\|\nabla f(\varphi(t))\|^2.
   \]
+\end{lemma}
 
+\begin{proof}
+  \leanok{}
   By the chain rule, the derivative of the composition $f \circ \varphi$ at time $t$ is
   \[
     \frac{d}{dt} f(\varphi(t)) = Df(\varphi(t)) \cdot \varphi'(t) = \langle \nabla f(\varphi(t)), \varphi'(t) \rangle.
@@ -745,7 +764,7 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
     \frac{d}{dt} f(\varphi(t)) = \langle \nabla f(\varphi(t)), -\nabla f(\varphi(t)) \rangle = -\|\nabla f(\varphi(t))\|^2,
   \]
   as claimed.
-\end{lemma}
+\end{proof}
 
 \begin{lemma}[Energy is non-increasing]\label{lem:GradientFlow.energy_antitone}
   \lean{Lean4ML.Optimization.GradientFlow.energy_antitone}
@@ -755,7 +774,10 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
   \[
     f(\varphi(s)) \le f(\varphi(r)).
   \]
+\end{lemma}
 
+\begin{proof}
+  \leanok{}
   Suppose for contradiction that $f(\varphi(s)) > f(\varphi(r))$. By the mean value theorem, there exists $t \in (r, s)$
   such that
   \[
@@ -766,7 +788,7 @@ and $\nabla f$ denotes the (Fr\'echet) gradient in the Hilbert space structure.
     \varphi'(t) = -\|\nabla f(\varphi(t))\|^2 \le 0,
   \]
   a contradiction. Thus $f(\varphi(s)) \le f(\varphi(r))$.
-\end{lemma}
+\end{proof}
 
 % --------------------------------------------------------------------
 % Chaining (extension) and restriction of flows
@@ -1009,6 +1031,7 @@ $s \subseteq E$ is a convex set, and $x, y \in E$.
 \end{theorem}
 
 \begin{proof}
+  \leanok{}
   Let $x, y \in \mathcal{M}$ and $a, b \ge 0$ with $a + b = 1$. Set $z := ax + by$.
   Since $s$ is convex, $z \in s$. For any $w \in s$, convexity of $f$ gives
   \[
@@ -1036,6 +1059,7 @@ $s \subseteq E$ is a convex set, and $x, y \in E$.
 \end{lemma}
 
 \begin{proof}
+  \leanok{}
   \textbf{Step 1: Convexity upper bound along the segment.}
   For $\alpha \in [0,1]$, the convexity of $f$ gives
   \[
@@ -1070,6 +1094,7 @@ $s \subseteq E$ is a convex set, and $x, y \in E$.
 \end{theorem}
 
 \begin{proof}
+  \leanok{}
   Apply Lemma~\ref{lem:convex_first_order_char} with the given $x$ and any $y \in s$:
   \[
     f(x) + Df(x)(y-x) \le f(y).
@@ -1097,6 +1122,7 @@ $s \subseteq E$ is a convex set, and $x, y \in E$.
 \end{lemma}
 
 \begin{proof}
+  \leanok{}
   Differentiate $g(t)=f(\varphi(t))-\inf f$. The constant $\inf f$ contributes no derivative, and the chain rule
   along the flow gives
   \[
@@ -1121,6 +1147,7 @@ $s \subseteq E$ is a convex set, and $x, y \in E$.
 \end{lemma}
 
 \begin{proof}
+  \leanok{}
   Consider the auxiliary function
   \[
     h(t):=\bigl(f(\varphi(t))-\inf f\bigr)e^{2\mu t}.
@@ -1140,6 +1167,7 @@ $s \subseteq E$ is a convex set, and $x, y \in E$.
 \end{theorem}
 
 \begin{proof}
+  \leanok{}
   The global PL estimate gives the upper bound from Lemma~\ref{lem:energyGap_exp_bound}. Since $f$ is bounded below,
   we also have $f(\varphi(t)) - \inf f\ge 0$ for all $t\ge 0$.
   The right-hand side is an exponentially decaying term, hence tends to $0$ as $t\to\infty$.
@@ -1204,6 +1232,7 @@ $s \subseteq E$ is a convex set, $m > 0$, and $x, y \in E$.
 \end{lemma}
 
 \begin{proof}
+  \leanok{}
   Define $g : E \to \mathbb{R}$ by $g(z) = f(z) - \frac{m}{2}\|z\|^2$.
   By Lemma~\ref{lem:strongConvexOn_iff_convex}, $g$ is convex on $s$.
   Since $f$ is Fr\'echet differentiable at $x$ and $z \mapsto \frac{m}{2}\|z\|^2$ is
@@ -1254,6 +1283,7 @@ $s \subseteq E$ is a convex set, $m > 0$, and $x, y \in E$.
 \end{theorem}
 
 \begin{proof}
+  \leanok{}
 Apply Lemma~\ref{lem:strong_convex_lower_bound} with $x = x^*$ and any $y$ in the domain:
 $$f(y) \geq f(x^*) + Df(x^*)(y-x^*) + \frac{m}{2}\|y-x^*\|^2.$$
 Since $x^*$ is a stationary point, $Df(x^*) = 0$, so:
@@ -1294,6 +1324,7 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
 \end{lemma}
 
 \begin{proof}
+  \leanok{}
   Fix $x, u$ and $t > 0$. The first-order strong convexity bound
   (Lemma~\ref{lem:strong_convex_lower_bound}) at the pair $(x, x + tu)$ and at
   $(x+tu, x)$ together with summation yields
@@ -1313,6 +1344,7 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
 \end{lemma}
 
 \begin{proof}
+  \leanok{}
   By Lemma~\ref{lem:strongConvexOn_iff_convex}, it suffices to show that
   $g(y) := f(y) - \frac{m}{2}\|y\|^2$ is convex on $E$. For any line restriction
   $\varphi(t) := g(x + t d)$, a direct computation gives
@@ -1329,6 +1361,7 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
 \end{lemma}
 
 \begin{proof}
+  \leanok{}
   Direct from Lemmas~\ref{lem:strongConvexOn_imp_hessian_lb} and~\ref{lem:hessian_lb_imp_strongConvexOn}.
 \end{proof}
 
@@ -1345,6 +1378,7 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
 \end{lemma}
 
 \begin{proof}
+  \leanok{}
   Apply Theorem~\ref{thm:lSmoothOnUnivImpliesHessianQuadraticFormBound} with the
   fact that $\nabla f$ has Fr\'echet derivative $\nabla^2 f(x)$ at each $x$
   (Lemma~\ref{lem:hasFDerivAt_gradient}).
@@ -1359,6 +1393,7 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
 \end{lemma}
 
 \begin{proof}
+  \leanok{}
   By the polarization identity (using self-adjointness),
   \[
     4\,\langle A u, v\rangle = \langle A(u+v), u+v\rangle - \langle A(u-v), u-v\rangle.
@@ -1379,6 +1414,7 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
 \end{lemma}
 
 \begin{proof}
+  \leanok{}
   By the symmetry of the second Fr\'echet derivative
   (\texttt{ContDiffAt.isSymmSndFDerivAt}), $(D^2 f(x))(u)(v) = (D^2 f(x))(v)(u)$.
   Combining with the Riesz duality used to define the gradient ($\nabla f$ is
@@ -1395,6 +1431,7 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
 \end{lemma}
 
 \begin{proof}
+  \leanok{}
   By Theorem~\ref{thm:hessianBoundImpliesLSmoothOnUniv}, it suffices to bound
   $\|\nabla^2 f(x)\| \le L$ for all $x$. The Hessian is self-adjoint by
   Lemma~\ref{lem:hessian_isSymmetric}. Since $f$ is convex, it is strongly
@@ -1413,6 +1450,7 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
 \end{corollary}
 
 \begin{proof}
+  \leanok{}
   Direct from Lemmas~\ref{lem:lSmooth_imp_hessian_ub} and~\ref{lem:hessian_ub_imp_lSmooth}.
 \end{proof}
 
@@ -1442,6 +1480,7 @@ This demonstrates that $x^*$ is the strictly unique global minimizer of $f$.
 \end{theorem}
 
 \begin{proof}
+  \leanok{}
   Fix $x$ and set $g := \nabla f(x)$. By the first-order lower bound
   (Lemma~\ref{lem:strong_convex_lower_bound}), for every $z \in E$,
   \[
